@@ -1,0 +1,7 @@
+/.env
+/.vscode
+/__pycache__
+/api_test_sd.py
+/jobs.json
+/notes.txt
+/venv
