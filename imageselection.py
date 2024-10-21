@@ -3,6 +3,7 @@ from PIL import Image, ImageTk
 import tkinter as tk
 import json
 import jobsManager
+import b64encoder as encoder
 
 jobsManager.default_endpoint = "http://127.0.0.1:7860"
 
