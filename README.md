@@ -1,5 +1,8 @@
 # InuDiffusion
 ### An Automatic1111 Wrapper centered around batch processing
+##### 🚧 Note : This project is in a very early stage of development.
+Lots of scripts and things you see might be heavily altered, removed, or be added later on.
+also, there is still no frontend.
 
 InuDiffusion is the over-engineered solution to my wish for better handling of batch images by stable diffusion, based around the principles of : 
 - **traceability**
