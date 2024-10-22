@@ -10,5 +10,13 @@ Having a pretty average GPU, i felt like handling my usual workflow was a bit of
 
 **please keep in mind that this project has been specifically targeted to my own workflow and needs, so it's not guaranteed it will be ideal for yours aswell.**
 
+The usual workflow goes like this : 
+- I batch generate some Txt2Img prompts, using wildcards and everything else i want.
+- from those images, I run the ImageSelector in order to choose which ones are actually good enough to upscale.
+- From there, I send some Txt2Img Variations prompts for the images I think would have even better results with other seeds
+- Rinse and repeat until I get a number of images that satisfies me and that can be upscaled with Img2Img
+- Img2Img all images that "survived" from all the various selection rounds
+- profit
+
 ## Features :
 - Keep track of each image's job status, generation parameters, originating image (in case it's a variation of another image or an img2img)
