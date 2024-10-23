@@ -5,6 +5,7 @@ import PIL
 from PIL import Image
 import requests
 import os
+import b64encoder as encoder
 
 # handles the scheduling of jobs.
 
@@ -40,11 +41,16 @@ def update_job_in_json(job_ID, job_type = None, starting_img_path = None):
             jobs = json.load(file)
         except json.decoder.JSONDecodeError:
             jobs = {}
+        
+    starting_img = str
+    if job_type == "txt2img" :  starting_img = None
+    elif starting_img_path : starting_img = starting_img_path
+    else : starting_img = jobs[job_ID]["starting_img"]
     
     jobs[job_ID] = {
         "job_type" : job_type if job_type is not None else jobs[job_ID]["job_type"],
         "status" : get_job_status(job_ID),
-        "starting_img" : None if (job_type == "txt2img") else starting_img_path,
+        "starting_img" : starting_img,
         "output_images" : [] if get_output_images(job_ID) is None else get_output_images(job_ID), # grid images are not considered
         # the images checked stays the same if the job was already in the json file, otherwise it is set to False.
         "images_checked" : jobs[job_ID]["images_checked"] if job_ID in jobs else False
@@ -60,9 +66,9 @@ def update_job_in_json(job_ID, job_type = None, starting_img_path = None):
                     original_job = job
         if original_job is not None:
             print(f"original job for {job_ID}  : {original_job}")
-        original_job_images = jobs[original_job]["output_images"]
-        original_job_images.remove(starting_img_path)
-        jobs[original_job]["output_images"] = original_job_images
+            original_job_images = jobs[original_job]["output_images"]
+            original_job_images.remove(starting_img_path)
+            jobs[original_job]["output_images"] = original_job_images
 
     # if there are no output images and the album is checked,
     # it means that the images have been deleted, so we remove the job from the json file.
@@ -80,6 +86,12 @@ def get_jobs_from_json():
         jobs = {}
     return jobs
 
+def update_all_jobs_in_json():
+    """### Update all the jobs in the jobs.json file."""
+    jobs = get_jobs_from_json()
+    for job_ID in jobs:
+        update_job_in_json(job_ID)
+
 def remove_job_from_json(job_ID):
     """### Remove a job from the jobs.json file."""
     with open("jobs.json", "r") as file:
@@ -92,7 +104,7 @@ def queue_img2img(
         image_path=None,
         width=None, height=None,
         # tiling=True, # to check if tiling is actually vae or something else
-        denoising_strength = 0.35,
+        denoising_strength = 0.25,
         upscale_factor = 2,
         lora_multiplier = 0.5,
         prompt = None, 
@@ -108,6 +120,11 @@ def queue_img2img(
 
     """### Queue a img2img job to the agent scheduler.
     returns an object with the job ID if successful."""
+
+    # in case a local SD path was given (output/...) make it an absolute path
+    # this is the case if it's invoked from other functions that work like this
+    if stableDiffusionDir not in image_path:
+        image_path = stableDiffusionDir+image_path
 
     # open the image and encode it in base64 to send it to the API
     with open(image_path, 'rb') as file:
@@ -155,6 +172,8 @@ def queue_img2img(
     }
     response = requests.post(url, headers=headers, json=data)
     task_id = response.json()["task_id"]
+    # remove stableDiffusionDir from the image path
+    image_path = image_path.replace(stableDiffusionDir, "")
     update_job_in_json(task_id, "img2img", image_path)
     print(f"img2img job started with ID {task_id}")
     return task_id
@@ -228,6 +247,7 @@ def queue_txt2imgVariations(
 
     # queue the txt2img job
     t2ijob = queue_txt2img(prompt, negative_prompt, n_iter=n_iter, width=width, height=height, cfg_scale=cfg_scale, styles=[], seed=-1)
+    original_image_path = original_image_path.replace(stableDiffusionDir, "")
     update_job_in_json(t2ijob, "txt2imgVariations", original_image_path)
     return t2ijob
 
@@ -244,6 +264,29 @@ def queue_img2imgFromTask(taskID : str):
     for image in images:
         jobIDs.append(queue_img2img(image_path=f"{stableDiffusionDir}{image}"))
     return jobIDs
+
+def queue_img2imgAllFinishedJobs():
+    """### Queue an img2img job for each image in all the finished txt2img tasks."""
+    update_all_jobs_in_json() # update all the jobs in the json file
+    jobs = get_jobs_from_json()
+    jobIDs = []
+    for job in jobs:
+        jobtype = jobs[job]["job_type"]
+        for image in jobs[job]["output_images"]:
+            # make sure to not queue img2img jobs for img2img jobs
+            if (jobs[job]["status"] == "done" # if the job is done (maybe not necessary)
+                and (jobtype != "img2img")
+                and jobs[job]["images_checked"] == True): # if the job has been checked
+                # make sure to not queue img2img jobs for images that have been already queued
+                already_queued = False
+                for otherjob in jobs:
+                    if (jobs[otherjob]["starting_img"] == image and jobs[otherjob]["job_type"]=="img2img"):
+                        print(f"image {image} already done!")
+                        already_queued = True
+                        continue
+                # if not already_queued : print(f"queueing {image}...")
+                queue_img2img(image)
+    #  return jobIDs
 
 def queue_txt2imgVariationsFromTask(taskID : str):
     """### Queue a txt2imgVariations task for each output in a txt2img task."""
@@ -300,6 +343,13 @@ def get_output_images(job_id : str) -> list[str]:
     if images is not None:
         # remove all images containing the string "grid" in their name. remove all the images that are not actually there anymore.
         images = [image for image in images if "grid" not in image and os.path.exists(f"{stableDiffusionDir}{image}")]
+    
+    if images == []: # if the images from the job info have no paths, try to get them from the json and see if it works
+        try:
+            images = jobs[job_id]["output_images"]
+            images = [image for image in images if os.path.exists(f"{stableDiffusionDir}{image}")]
+        except KeyError:
+            pass
     return images
 
 def resume_queue():

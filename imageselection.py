@@ -71,8 +71,15 @@ def display_images():
     def on_no_press(event):
         if image_index > 0:
             image_to_delete = images[image_index - 1]
-            os.remove(os.path.join(directory, image_to_delete))
-            print(f"Deleted {image_to_delete}")
+            # os.remove(os.path.join(directory, image_to_delete))
+            # instead of deleting the image, move it to a different folder called "to_delete"
+            to_delete_dir = f"{directory}output/to_delete"
+            if not os.path.exists(to_delete_dir):
+                os.makedirs(to_delete_dir)
+            imageName = image_to_delete.split('/')[-1]
+            os.rename(f"{directory}{image_to_delete}", f"{to_delete_dir}/{imageName}")
+            # print(f"Deleted {image_to_delete}")
+            print(f"{imageName} marked for deletion")
             display_next_image()
 
     # Bind the 'y' and 'n' keys to their respective functions
@@ -112,15 +119,31 @@ with open("jobs.json", "r") as file:
                     checked_dir = txt2img_checked_dir
                 elif "img2img" in jobs[job_ID]["job_type"]:
                     checked_dir = img2img_checked_dir
+                
+                imageIndex = jobs[job_ID]["output_images"].index(image)
+                if jobs[job_ID]["job_type"] == "txt2img": # if the job type is txt2img:
+                    oldImageName = image.split('/')[-1]
+                    # imageIndex = position of the image in the list of output images
+                    newImageName = f"{encoder.uuid_to_base64(job_ID)}@{imageIndex}.png"
+                else : # if the job type is img2img or txt2txtVariations:
+                    startingimageName = jobs[job_ID]["starting_img"].split('/')[-1]
+                    startingimageName_nopng = startingimageName.split('.')[0]
+                    newImageName = f"{startingimageName_nopng}_{imageIndex}.png"
+
+
                 os.rename(f"/mnt/KingstonSSD/stable-diffusion-webui-forge/{image}", 
-                          f"{checked_dir}/{image.split('/')[-1]}")
+                          f"{checked_dir}/{newImageName}")
 
                 # Update job JSON with new paths
-                for i in range(len(jobs[job_ID]["output_images"])):
-                    if jobs[job_ID]["output_images"][i] == image:
-                        jobs[job_ID]["output_images"][i] = f"output/txt2img-images/checked_images/{image.split('/')[-1]}"
-                    if jobs[job_ID]["starting_img"] == image:
-                        jobs[job_ID]["starting_img"] = f"output/txt2img-images/checked_images/{image.split('/')[-1]}"
+                for i in range(len(jobs[job_ID]["output_images"])): # for each image in the job's output images
+                    if jobs[job_ID]["output_images"][i] == image: # if the image is the one that was moved
+                        if "txt2img" in jobs[job_ID]["job_type"]:
+                            jobs[job_ID]["output_images"][i] = f"output/txt2img-images/checked_images/{newImageName}"
+                        elif "img2img" in jobs[job_ID]["job_type"]:
+                            jobs[job_ID]["output_images"][i] = f"output/img2img-images/checked_images/{newImageName}"
+                    if jobs[job_ID]["starting_img"] == image: # if the image is the starting image
+                        jobs[job_ID]["starting_img"] = f"output/txt2img-images/checked_images/{newImageName}"
+                # same with img2img
 
 with open("jobs.json", "w") as file:
     json.dump(jobs, file, indent=4)
