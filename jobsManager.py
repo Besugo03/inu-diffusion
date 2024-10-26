@@ -67,6 +67,7 @@ def update_job_in_json(job_ID, job_type = None, starting_img_path = None):
         if original_job is not None:
             print(f"original job for {job_ID}  : {original_job}")
             original_job_images = jobs[original_job]["output_images"]
+            print(starting_img_path)
             original_job_images.remove(starting_img_path)
             jobs[original_job]["output_images"] = original_job_images
 
@@ -232,6 +233,10 @@ def queue_txt2imgVariations(
         cfg_scale = 5,
 ):
     # open the image and get the prompt and negative prompt
+
+    if stableDiffusionDir not in original_image_path:
+        original_image_path = stableDiffusionDir+original_image_path
+
     image_prompts = metadata.extract_prompt(original_image_path)
     prompt = image_prompts[0]
     negative_prompt = image_prompts[1]
@@ -288,6 +293,29 @@ def queue_img2imgAllFinishedJobs():
                 queue_img2img(image)
     #  return jobIDs
 
+def queue_VariationsAllChekedJobs():
+    """### Queue a txt2imgVariations job for each image in all the finished txt2img tasks."""
+    update_all_jobs_in_json() # update all the jobs in the json file
+    jobs = get_jobs_from_json()
+    jobIDs = []
+    for job in jobs:
+        jobtype = jobs[job]["job_type"]
+        for image in jobs[job]["output_images"]:
+            # make sure to not queue txt2imgVariations jobs for txt2imgVariations jobs
+            if (jobs[job]["status"] == "done" # if the job is done (maybe not necessary)
+                and (jobtype == "txt2img") # variationsand img2img jobs are not valid
+                and jobs[job]["images_checked"] == True): # if the job has been checked
+                # make sure to not queue txt2imgVariations jobs for images that have been already queued
+                already_queued = False
+                for otherjob in jobs:
+                    if (jobs[otherjob]["starting_img"] == image and jobs[otherjob]["job_type"]=="txt2imgVariations"):
+                        print(f"Variations for {image} already exist!")
+                        already_queued = True
+                        continue
+                # if not already_queued : print(f"queueing {image}...")
+                queue_txt2imgVariations(image)
+    #  return jobIDs
+
 def queue_txt2imgVariationsFromTask(taskID : str):
     """### Queue a txt2imgVariations task for each output in a txt2img task."""
     jobs = get_jobs_from_json()
@@ -325,6 +353,14 @@ def get_output_images(job_id : str) -> list[str]:
     """Gets the output images of a job by its ID"""
     job_info = get_job_info(job_id)
     jobs = get_jobs_from_json()
+
+    # if the task has failed, notify the user
+    # TODO: maybe remove it from list?
+    if job_info['data']['status'] == "failed":
+        print(f"task {job_id} failed. returning nothing.")
+        return []
+
+
     # if the job has been checked, the images dir from the task info will not match with their actual location.
     # therefore, we get the images from the jobs.json file, if they are there, and verify that their path still exists.
     # if the path does not exist, we remove it from the list of images.
@@ -335,6 +371,7 @@ def get_output_images(job_id : str) -> list[str]:
             return images
     except KeyError:
         pass
+
     # if the task has not been checked, we get the images from the task info.
     try :
         images = json.loads(job_info['data']['result'])['images']
@@ -363,3 +400,12 @@ def pause_queue():
     url = default_endpoint + f"/agent-scheduler/v1/queue/pause"
     response = requests.post(url)
     return response.json()
+
+def remove_all_ended_jobs():
+    """Removes jobs that fall into one of the following categories : 
+    - failed
+    - img2img that have been checked"""
+    jobs = get_jobs_from_json()
+    for job in jobs:
+        if jobs[job]["status"] == "failed" or (jobs[job]["job_type"] == "img2img" and jobs[job]["images_checked"] == True):
+            remove_job_from_json(job)
