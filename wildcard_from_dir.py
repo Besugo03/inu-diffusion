@@ -36,9 +36,13 @@ lora_and_activation_list = []
 
 added_files = 0
 
-with open (wildcard_dir+f"/{wildcard_name}.txt", 'r') as f:
-    old_lora_file = f.readlines()
-    f.close()
+try : 
+    with open (wildcard_dir+f"/{wildcard_name}.txt", 'r') as f:
+        old_lora_file = f.readlines()
+        f.close()
+except FileNotFoundError:
+    print("No wildcard file found. Creating a new one...")
+    old_lora_file = []
 
 for json_file_idx in range(len(json_pony_files)):
     with open (lora_directory+f"/{subdirectories[chosen_directory-1]}/{json_files[json_file_idx]}", 'r') as f:
