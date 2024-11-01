@@ -105,6 +105,7 @@ with open("jobs.json", "r") as file:
     for job_ID in jobs:
         if jobs[job_ID]["output_images"] is not None and jobs[job_ID]["status"] == "done":
             jobs[job_ID]["images_checked"] = True
+            
 
             # Move images to the checked_images folder
             for image in jobs[job_ID]["output_images"]:

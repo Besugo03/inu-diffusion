@@ -11,10 +11,8 @@ lora_weight = input(f"please specify the default weight for lora (default = {def
 lora_weight = lora_weight if lora_weight else default_lora_weight
 print(f"lora weight is [ {lora_weight} ]")
 
-wildcard_name = input("Please specify the name of the wildcard: ")
 lora_directory = stableDiffusionDir+"/models/Lora"
 wildcard_dir = "/".join(lora_directory.split("/")[:-2]) + "/extensions/sd-dynamic-prompts/wildcards"
-
 
 # Ask user to choose a directory from which to extract the Lora
 subdirectories = os.listdir(lora_directory)
@@ -23,6 +21,22 @@ for subdir_idx in range(len(subdirectories)):
 
 chosen_directory = int(input("Please choose a directory to extract Lora from: "))
 print(f"Chosen directory is {subdirectories[chosen_directory-1]}")
+
+# then, list the files(wildcards) in the chosen directory
+wildcards = os.listdir(wildcard_dir)
+print("Wildcards:")
+for wildcard_idx in range(len(wildcards)):
+    print(f"{wildcard_idx+1}. {wildcards[wildcard_idx]}")
+
+# ask the user to either put the index of the wildcard file they want to add to, or create a new one by typing the name of the new file.
+chosen_wildcard = input("Please choose a wildcard file to add to: ")
+if chosen_wildcard.isdigit():
+    wildcard_name = wildcards[int(chosen_wildcard)-1][:-4]
+else:
+    wildcard_name = chosen_wildcard
+
+
+
 
 # extract only the .json files from the chosen directory and put them in a list
 json_files = [f for f in os.listdir(lora_directory+f"/{subdirectories[chosen_directory-1]}") if f.endswith('.json')]

@@ -105,7 +105,7 @@ def queue_img2img(
         image_path=None,
         width=None, height=None,
         # tiling=True, # to check if tiling is actually vae or something else
-        denoising_strength = 0.25,
+        denoising_strength = 0.2,
         upscale_factor = 2,
         lora_multiplier = 0.5,
         prompt = None, 
