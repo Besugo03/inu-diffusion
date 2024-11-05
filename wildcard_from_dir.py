@@ -41,7 +41,7 @@ else:
 # extract only the .json files from the chosen directory and put them in a list
 json_files = [f for f in os.listdir(lora_directory+f"/{subdirectories[chosen_directory-1]}") if f.endswith('.json')]
 # extract the list of pony models from the directory (end with .safetensors)
-pony_loras = safetensorsMetadata.get_pony_loras_from_dir(lora_directory+f"/{subdirectories[chosen_directory-1]}")
+pony_loras = safetensorsMetadata.get_pony_loras_from_dir(lora_directory+f"/{subdirectories[chosen_directory-1]}", verbose=True)
 
 # for each json file, filter out the ones that are not pony models
 json_pony_files = [x for x in json_files if x[:-5]+".safetensors" in pony_loras]

@@ -6,6 +6,7 @@ from PIL import Image
 import requests
 import os
 import b64encoder as encoder
+import instant_wildcard as iw
 
 # handles the scheduling of jobs.
 
@@ -97,7 +98,10 @@ def remove_job_from_json(job_ID):
     """### Remove a job from the jobs.json file."""
     with open("jobs.json", "r") as file:
         jobs = json.load(file)
-    jobs.pop(job_ID)
+    try : 
+        jobs.pop(job_ID)
+    except KeyError:
+        print(f"Job {job_ID} not found in the jobs.json file.")
     with open("jobs.json", "w") as file:
         json.dump(jobs, file)
 
@@ -199,6 +203,7 @@ def queue_txt2img(
     url = default_endpoint + "/agent-scheduler/v1/queue/txt2img"
     headers = {"Content-Type": "application/json"}
     # print(styles)
+    prompt = iw.process_instant_wildcard_prompt(prompt)
     data = {
         "prompt": prompt,
         "n_iter" : n_iter,
@@ -356,8 +361,13 @@ def get_output_images(job_id : str) -> list[str]:
 
     # if the task has failed, notify the user
     # TODO: maybe remove it from list?
-    if job_info['data']['status'] == "failed":
-        print(f"task {job_id} failed. returning nothing.")
+    try :
+        if job_info['data']['status'] == "failed":
+            print(f"task {job_id} failed. returning nothing.")
+            return []
+    except KeyError:
+        # remove the job from the json file if it has failed
+        remove_job_from_json(job_id)
         return []
 
 
@@ -405,7 +415,31 @@ def remove_all_ended_jobs():
     """Removes jobs that fall into one of the following categories : 
     - failed
     - img2img that have been checked"""
+    update_all_jobs_in_json()
     jobs = get_jobs_from_json()
+    jobs_to_remove = []    
+    #TODO: remove the txt2img and txt2imgVariations jobs that have been checked and were part of an img2img or failed job.
+    # for each img2img job that has been checked, we do the following : 
+    # 1. add the job to the list of jobs to remove
+    # 2. get the original job that generated the image (could be a txt2img or txt2imgVariations job)
+    # 3. remove the image from the original job's output images
+    # 4. if the job was a txt2imgVariations job, go back to step 2.
     for job in jobs:
-        if jobs[job]["status"] == "failed" or (jobs[job]["job_type"] == "img2img" and jobs[job]["images_checked"] == True):
-            remove_job_from_json(job)
+        if jobs[job]["status"] == "failed":
+            jobs_to_remove.append(job)
+        elif jobs[job]["job_type"] == "img2img" and jobs[job]["images_checked"] == True:
+            jobs_to_remove.append(job)
+            currentjob = job
+            currentjobType = "img2img"
+            while currentjobType != "txt2img":
+                for job in jobs:
+                    if jobs[job]["output_images"] is not None:
+                        if jobs[job]["output_images"] == currentjob:
+                            currentjob = job
+                            currentjobType = jobs[job]["job_type"]
+                            jobs[job]["output_images"].remove(currentjob)
+                            jobs_to_remove.append(currentjob)
+                            break
+    for job in jobs_to_remove:
+        remove_job_from_json(job)
+    return jobs_to_remove
