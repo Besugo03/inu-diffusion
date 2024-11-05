@@ -416,30 +416,38 @@ def remove_all_ended_jobs():
     - failed
     - img2img that have been checked"""
     update_all_jobs_in_json()
-    jobs = get_jobs_from_json()
-    jobs_to_remove = []    
+    jobs = get_jobs_from_json() 
+    images_to_delete = []
     #TODO: remove the txt2img and txt2imgVariations jobs that have been checked and were part of an img2img or failed job.
-    # for each img2img job that has been checked, we do the following : 
-    # 1. add the job to the list of jobs to remove
-    # 2. get the original job that generated the image (could be a txt2img or txt2imgVariations job)
-    # 3. remove the image from the original job's output images
-    # 4. if the job was a txt2imgVariations job, go back to step 2.
-    for job in jobs:
-        if jobs[job]["status"] == "failed":
-            jobs_to_remove.append(job)
-        elif jobs[job]["job_type"] == "img2img" and jobs[job]["images_checked"] == True:
-            jobs_to_remove.append(job)
-            currentjob = job
-            currentjobType = "img2img"
-            while currentjobType != "txt2img":
-                for job in jobs:
-                    if jobs[job]["output_images"] is not None:
-                        if jobs[job]["output_images"] == currentjob:
-                            currentjob = job
-                            currentjobType = jobs[job]["job_type"]
-                            jobs[job]["output_images"].remove(currentjob)
-                            jobs_to_remove.append(currentjob)
-                            break
-    for job in jobs_to_remove:
-        remove_job_from_json(job)
-    return jobs_to_remove
+    # there must be a "way back" to its original txt2img job and the generated image that led to the img2img.
+    # TODO : in the rare edgecase there isn't, should just trim the generation tree up until the latest point
+
+    # for each img2img job that has been marked as checked :
+    img2img_jobs = [job for job in jobs if job["job_type"] == "img2img"]
+    #1. start from the img2img job
+    for img2img_job in img2img_jobs:
+        currentjob = img2img_job
+        currentjob_type = "img2img"
+        while currentjob_type != "txt2img":
+            #2. get its starting img
+            starting_image = jobs[currentjob_type]["starting_img"]
+            images_to_delete.append(starting_image)
+            #2.5 get the job associated with the starting img
+            originaljob = ""
+            for job in jobs:
+                if job["output_images"] == starting_image:
+                    originaljob = job["output_images"]
+            if originaljob == "" : raise Exception("Original job not found.")
+
+            originaljob.pop(starting_image) #remove the image from the jobs outputs
+
+            #3. get the starting img's job type and remember the starting img
+            currentjob_type = jobs[originaljob]["job_type"]
+            currentjob = originaljob
+            #4. if the job type is not a txt2img, redo from point 2
+
+    #5. delete all the starting imgs up until the txt2img one from the checked_images folder.
+    # TODO : add code to actually delete images. for safety reasons, we print them now
+    print(images_to_delete)
+
+    # the function should leave usual jobs without any image outputs, a condition which gets taken care of by the update function.
