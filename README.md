@@ -11,6 +11,38 @@ InuDiffusion is the over-engineered solution to my wish for better handling of b
 
 Having a pretty average GPU, i felt like handling my usual workflow was a bit of a waste of time since i had to wait for each image to finish in order to get some decent results, and keeping track of which images were variations of another, or good enough to upscale, or destined to be deleted, was a huge waste of time.
 
+### Introducing BangTags ❗
+**Bangtags** are a brand-new feature introduced by InuDiffusion, where a single tag can be converted to an entire wildcard containing related tags to that one.
+- please note that sd-dynamic-prompts is required for this to work.
+
+The syntax is `!tag:number`, and gets converted into : 
+
+`tag, {number$$ relatedTag1 | relatedTag2 | relatedTag3...}`
+
+for example, the prompt `1girl, !eating:2` gets converted into :
+
+`1girl, eating, {2$$food|holding_food|chopsticks|food_on_face|bowl|:t|holding_chopsticks|plate|fork|fruit|spoon|table|wagashi|noodles|burger|food_in_mouth|cake|ice_cream|rice|cup|holding_fork|holding|popsicle|holding_spoon|ramen|baozi|chewing|pizza|mochi|dango}`
+
+So when a batch job is sent, it chooses 2 random tags from the wilcard for each image generation, resulting in, for example : 
+
+`1girl, eating, holding_food, fruit`
+
+`1girl, eating, pizza, chewing`
+
+`1girl, eating, ice_cream, food_in_mouth_`
+
+this can obviously lead to less coherent results, such as
+
+`1girl, eating, chopsticks, ice_cream`
+
+but this is also largely dependant on your tag choice for the bangtag. extremely broad terms are usually subject to this.
+
+This lets you experiment with different wildcards without the hassle of using other scripts to generate them, saving them somewhere you remember, and actually remembering you have them at the time of generation.
+
+Using BangTags, it's as easy as adding "!" everywhere you want to add some variety.
+
+---
+
 **please keep in mind that this project has been specifically targeted to my own workflow and needs, so it's not guaranteed it will be ideal for yours aswell.**
 
 The usual workflow goes like this : 
@@ -24,6 +56,7 @@ The usual workflow goes like this :
 ## Features :
 - Keep track of each image's job status, generation parameters, originating image (in case it's a variation of another image or an img2img)
 - Whole-job management to minimize time spent doing everything image by image
+- Bangtags
 - Only images that have been checked are going to be marked as available for other potential tasks
 - The images generated and classified by InuDiffusion are named in a way that lets you recover the image's generation details even if it is moved from its original folder
 - The naming is also structured in a way that, if the images are displayed in any file manager that sorts them by name, their proximity will be directly related to their correlation in jobs.
