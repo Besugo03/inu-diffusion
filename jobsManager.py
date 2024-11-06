@@ -415,7 +415,7 @@ def remove_all_ended_jobs():
     """Removes jobs that fall into one of the following categories : 
     - failed
     - img2img that have been checked"""
-    update_all_jobs_in_json()
+    # update_all_jobs_in_json()
     jobs = get_jobs_from_json() 
     images_to_delete = []
     #TODO: remove the txt2img and txt2imgVariations jobs that have been checked and were part of an img2img or failed job.
@@ -423,24 +423,31 @@ def remove_all_ended_jobs():
     # TODO : in the rare edgecase there isn't, should just trim the generation tree up until the latest point
 
     # for each img2img job that has been marked as checked :
-    img2img_jobs = [job for job in jobs if job["job_type"] == "img2img"]
+    img2img_jobs = [job for job in jobs if jobs[job]["job_type"] == "img2img"]
     #1. start from the img2img job
     for img2img_job in img2img_jobs:
+        print("----------------------------------------")
+        print(f"Checking {img2img_job}...")
         currentjob = img2img_job
         currentjob_type = "img2img"
         while currentjob_type != "txt2img":
             #2. get its starting img
-            starting_image = jobs[currentjob_type]["starting_img"]
+            starting_image = jobs[currentjob]["starting_img"]
             images_to_delete.append(starting_image)
+            print(f"Starting image : {starting_image}")
             #2.5 get the job associated with the starting img
             originaljob = ""
             for job in jobs:
-                if job["output_images"] == starting_image:
-                    originaljob = job["output_images"]
-            if originaljob == "" : raise Exception("Original job not found.")
+                job_output_images = [output_image for output_image in jobs[job]["output_images"]]
+                for image in job_output_images:
+                    if starting_image == image:
+                        originaljob = job
+                        print(f"Original job : {originaljob}")
+            if originaljob == "" : 
+                print("Original job not found. Interrupting.")
+                break
 
-            originaljob.pop(starting_image) #remove the image from the jobs outputs
-
+            jobs[originaljob]["output_images"].remove(starting_image) #remove the image from the jobs outputs
             #3. get the starting img's job type and remember the starting img
             currentjob_type = jobs[originaljob]["job_type"]
             currentjob = originaljob
@@ -449,5 +456,11 @@ def remove_all_ended_jobs():
     #5. delete all the starting imgs up until the txt2img one from the checked_images folder.
     # TODO : add code to actually delete images. for safety reasons, we print them now
     print(images_to_delete)
+    # for image in images_to_delete:
+    #     os.remove(f"{stableDiffusionDir}{image}")
+
+    # dump the jobs to the json file
+    with open("jobs.json", "w") as file:
+        json.dump(jobs, file, indent=4)
 
     # the function should leave usual jobs without any image outputs, a condition which gets taken care of by the update function.

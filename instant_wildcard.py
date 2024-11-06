@@ -1,5 +1,7 @@
 import requests
 
+# TODO : Fix an issue where if the tag is part of a dynamic prompt eg. {!test | test2} it will not be read and replaced correctly as its missing both the comma and the endline
+
 def nearest_tag(input_tag):
     url = f"https://danbooru.donmai.us/tags.json?search[name_matches]={input_tag}*&limit=100"
     response = requests.get(url)
