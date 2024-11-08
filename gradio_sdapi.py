@@ -2,7 +2,7 @@ import gradio as gr
 import api_test_sd as api
 import time
 
-stableDiffusionDir = "/mnt/KingstonSSD/stable-diffusion-webui-forge"
+stableDiffusionDir = "/mnt/Lexar 2TB/stable-diffusion-webui-forge"
 
 imageChoices = []
 

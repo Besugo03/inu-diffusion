@@ -3,7 +3,7 @@ import json
 import safetensorsMetadata
 
 default_lora_weight = 0.7
-stableDiffusionDir = "/mnt/KingstonSSD/stable-diffusion-webui-forge"
+stableDiffusionDir = "/mnt/Lexar 2TB/stable-diffusion-webui-forge"
 
 # Ask user for LoRa weight
 # if not specified, use default.

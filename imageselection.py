@@ -29,7 +29,7 @@ print(images)
 def display_images():
     global jobs
     global images
-    directory = "/mnt/KingstonSSD/stable-diffusion-webui-forge/"
+    directory = "/mnt/Lexar 2TB/stable-diffusion-webui-forge/"
 
     if not jobs:
         print(f"Jobs.json is empty.")
@@ -109,8 +109,8 @@ with open("jobs.json", "r") as file:
 
             # Move images to the checked_images folder
             for image in jobs[job_ID]["output_images"]:
-                txt2img_checked_dir = f"/mnt/KingstonSSD/stable-diffusion-webui-forge/output/txt2img-images/checked_images"
-                img2img_checked_dir = f"/mnt/KingstonSSD/stable-diffusion-webui-forge/output/img2img-images/checked_images"
+                txt2img_checked_dir = f"/mnt/Lexar 2TB/stable-diffusion-webui-forge/output/txt2img-images/checked_images"
+                img2img_checked_dir = f"/mnt/Lexar 2TB/stable-diffusion-webui-forge/output/img2img-images/checked_images"
                 if not os.path.exists(txt2img_checked_dir):
                     os.makedirs(txt2img_checked_dir)
                 if not os.path.exists(img2img_checked_dir):
@@ -132,7 +132,7 @@ with open("jobs.json", "r") as file:
                     newImageName = f"{startingimageName_nopng}_{imageIndex}.png"
 
 
-                os.rename(f"/mnt/KingstonSSD/stable-diffusion-webui-forge/{image}", 
+                os.rename(f"/mnt/Lexar 2TB/stable-diffusion-webui-forge/{image}", 
                           f"{checked_dir}/{newImageName}")
 
                 # Update job JSON with new paths

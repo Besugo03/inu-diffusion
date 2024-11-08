@@ -18,7 +18,7 @@ import instant_wildcard as iw
 # starting_img is the directory of the image that started the job.
 
 default_endpoint = str
-stableDiffusionDir = "/mnt/KingstonSSD/stable-diffusion-webui-forge/"
+stableDiffusionDir = "/mnt/Lexar 2TB/stable-diffusion-webui-forge/"
 
 def update_job_in_json(job_ID, job_type = None, starting_img_path = None):
     """### Save a job to the jobs.json file.
