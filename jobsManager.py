@@ -17,7 +17,7 @@ import instant_wildcard as iw
 # status is either pending, done, or failed.
 # starting_img is the directory of the image that started the job.
 
-default_endpoint = str
+default_endpoint : str
 stableDiffusionDir = "/mnt/Lexar 2TB/stable-diffusion-webui-forge/"
 
 def update_job_in_json(job_ID, job_type = None, starting_img_path = None):
@@ -225,9 +225,57 @@ def queue_txt2img(
         "infotext": "test infotext"
     }
     response = requests.post(url, headers=headers, json=data)
-    print(f"txt2img job started with ID {response.json()["task_id"]}")
+    print(response.json())
+    print(f'txt2img job started with ID {response.json()["task_id"]}')
     update_job_in_json(response.json()["task_id"], "txt2img")
     return response.json()["task_id"]
+
+def test_txt2img(
+        prompt = "", 
+        negative_prompt = "", 
+        width = 1024 , height = 1024, 
+        n_iter = 1,
+        batch_size = 1, 
+        sampler_name = "Euler a",
+        styles = ["BlushySpicy Style"],
+        steps = 25,
+        cfg_scale = 7, 
+        checkpoint = "autismmixSDXL_autismmixPony.safetensors",
+        vae = "sdxl_vae.safetensors", 
+        seed = -1):
+    
+    """### Testing stuff with the original API"""
+
+    url = default_endpoint + "/sdapi/v1/txt2img"
+    headers = {"Content-Type": "application/json"}
+    # print(styles)
+    prompt = iw.process_instant_wildcard_prompt(prompt)
+    print(f"prompt : {prompt}")
+    data = {
+        "prompt": prompt,
+        "n_iter" : n_iter,
+        "negative_prompt": negative_prompt,
+        "styles": styles,
+        "seed": seed,
+        "sampler_name": sampler_name,
+        "batch_size": batch_size,
+        "steps": steps,
+        "cfg_scale": cfg_scale,
+        "width": width,
+        "height": height,
+        "restore_faces": False,
+        "tiling": False,
+        "checkpoint": checkpoint,
+        "vae": vae,
+        "do_not_save_samples": False,
+        "do_not_save_grid": False,
+        # "infotext": "test infotext",
+        "save_images": True
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print("test_txt2img response : ")
+    print(response.json())
+    return response.json()
 
 def queue_txt2imgVariations(
         original_image_path = None,
