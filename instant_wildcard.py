@@ -1,4 +1,6 @@
 import requests
+import re
+import popular_characters_utils
 
 # TODO : Fix an issue where if the tag is part of a dynamic prompt eg. {!test | test2} it will not be read and replaced correctly as its missing both the comma and the endline
 
@@ -67,10 +69,11 @@ def get_relevant_tags(tag):
     final_tags = list(dict.fromkeys(jaccard_tags + cosine_tags))
     return final_tags
 
-def generate_instant_wildcard(tagList):
+def generate_instant_wildcard(tagList, num_tags):
     """Generates a wildcard tag for the given list of tags, written in the standard Sd-dynamic prompts format
     (e.g. {tag1|tag2|tag3})...."""
     wildcard = "{"
+    wildcard += f"{num_tags}$$"
     for tag in tagList:
         wildcard += f"{tag}|"
     wildcard = wildcard[:-1] + "}"
@@ -78,38 +81,30 @@ def generate_instant_wildcard(tagList):
 
 def process_instant_wildcard_prompt(prompt):
     """given a prompt, it finds the instant wildcard syntax (eg. 1girl,1boy,!requestedTag:numberoftags, othertags...) and replaces it with the
-    generated wildcard tag and the requested number of wildcard tags (written as {numberoftags$$tag1|tag2|tag3...})"""
-    # if the number is not specified (: is not present) then we will assume the user wants 3 tags
+    generated wildcard tags and the requested number of wildcard tags (written as {numberoftags$$tag1|tag2|tag3...})"""
     
-    import re
-    # find the instant wildcard syntax, which is basically either tags between an ! and an , or tags between an ! and the end of the string
-    # we need to do this for all the tags in the prompt
-    
-    # for each match, if the : is not present, we will assume the user wants 1 tag
-    # else, we will extract the number of tags the user wants
-    matches = re.findall(r'!(.*?)(?:,|$)', prompt)
-    for match in matches:
-        if ":" in match:
-            tag, num_tags = match.split(":")
-            num_tags = int(num_tags)
-        else:
-            tag = match
-            num_tags = 1
-        print(f"Tag: {tag}, Number of tags: {num_tags}")
-        related_tags = get_relevant_tags(tag)
-        # print("Related tags:", related_tags)
-        wildcard = generate_instant_wildcard(related_tags)
-        if wildcard == "}":
-            print(f"Tag {tag} not found. Skipping...")
-            # remove the match from the prompt and everything thats after it but before ,
-            wholematch = f"!{match},"
-            prompt = prompt.replace(wholematch, "")
-            continue
-        wildcard = tag + ", {" + f"{num_tags}$$" + wildcard[1:]
-        print("Generated wildcard:", wildcard)
-        print("\n")
-        if ":" in match:
-            prompt = prompt.replace(f"!{tag}:{num_tags}", wildcard)
-        else:
-            prompt = prompt.replace(f"!{tag}", wildcard)
-    return prompt
+    new_prompt = ""
+    split_tags = re.split(r',|{|}| \|', prompt)
+    print(split_tags)
+    for tag_segment in split_tags:
+        new_prompt += tag_segment.strip().strip("!?") + ","
+        if "?" in tag_segment or "!" in tag_segment:
+            if ":" in tag_segment:
+                tag_segment, num_tags = tag_segment.split(":")
+                num_tags = int(num_tags)
+            else:
+                tag_segment = tag_segment
+                num_tags = 1
+            print("\n")
+            only_tag = tag_segment.strip().strip("!?")
+            if "!" in tag_segment: # if it's a bangtag
+                related_tags = get_relevant_tags(only_tag)
+                wildcard = generate_instant_wildcard(related_tags,num_tags)
+                new_prompt += wildcard + ","
+
+            if "?" in tag_segment: # if it's a varietyTag
+                varietyTag = popular_characters_utils.parallel_fetch_uncommon_tags(only_tag, num_tags, 10) + ","
+                print(varietyTag)
+                new_prompt += varietyTag
+
+    return new_prompt
