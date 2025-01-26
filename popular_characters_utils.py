@@ -4,7 +4,7 @@ import concurrent.futures
 import time
 import dotenv
 
-forbidden_terms = ["aqua","black","blue","brown","green","grey","orange","purple","pink","red","white","yellow","amber","dark","girl","boy","artist","text","official","futanari","loli"]
+forbidden_terms = ["aqua","black","blue","brown","green","grey","orange","purple","pink","red","white","yellow","amber","dark","girl","boy","artist","text","official","futa_","futanari","loli","censor"]
 
 # Configuration
 # api = rule34 or danbooru
@@ -363,6 +363,6 @@ def parallel_fetch_uncommon_tags(input_tag, num_tags, tag_cap, return_wildcard=T
         for tag in tags:
             wildcard += f"{tag} | "
         wildcard = wildcard[:-3] + "}"
-        return wildcard
+        return wildcard if len(tags) > 0 else ""
     else:
         return tags

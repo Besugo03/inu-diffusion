@@ -4,6 +4,8 @@ import popular_characters_utils
 
 # TODO : Fix an issue where if the tag is part of a dynamic prompt eg. {!test | test2} it will not be read and replaced correctly as its missing both the comma and the endline
 
+forbidden_terms = ["aqua","black","blue","brown","green","grey","orange","purple","pink","red","white","yellow","amber","dark","girl","boy","artist","text","official","futa_","futanari","loli","censor"]
+
 def nearest_tag(input_tag):
     url = f"https://danbooru.donmai.us/tags.json?search[name_matches]={input_tag}*&limit=100"
     response = requests.get(url)
@@ -48,6 +50,7 @@ def get_relevant_tags(tag):
     # sort the tags by jaccard similarity
     jaccard_tags = sorted(apiTags,key=lambda x: x['jaccard_similarity'], reverse=True)
     jaccard_tags = [tag['tag']['name'] for tag in jaccard_tags if tag['tag']['name'] not in forbiddenTags and tag['tag']['category'] not in forbiddenCategories]
+    jaccard_tags = [tag for tag in jaccard_tags if not any(color in tag for color in forbidden_terms)]
 
     jaccard_tags = jaccard_tags[1:25]
 
@@ -55,6 +58,7 @@ def get_relevant_tags(tag):
     # sort the tags by cosine similarity
     cosine_tags = sorted(apiTags, key=lambda x: x['cosine_similarity'], reverse=True)
     cosine_tags = [tag['tag']['name'] for tag in cosine_tags if tag['tag']['name'] not in forbiddenTags and tag['tag']['category'] not in forbiddenCategories]
+    cosine_tags = [tag for tag in cosine_tags if not any(color in tag for color in forbidden_terms)]
 
     cosine_tags = cosine_tags[1:25]
 
@@ -62,6 +66,7 @@ def get_relevant_tags(tag):
     # sort the tags by overlap coefficient
     overlap_tags = sorted(apiTags, key=lambda x: x['overlap_coefficient'], reverse=True)
     overlap_tags = [tag['tag']['name'] for tag in overlap_tags if tag['tag']['name'] not in forbiddenTags and tag['tag']['category'] not in forbiddenCategories]
+    overlap_tags = [tag for tag in overlap_tags if not any(color in tag for color in forbidden_terms)]
 
     overlap_tags = overlap_tags[1:25]
 
@@ -77,6 +82,8 @@ def generate_instant_wildcard(tagList, num_tags):
     for tag in tagList:
         wildcard += f"{tag}|"
     wildcard = wildcard[:-1] + "}"
+    if len(tagList) == 1:
+        return ""
     return wildcard
 
 def process_instant_wildcard_prompt(prompt):
@@ -84,9 +91,15 @@ def process_instant_wildcard_prompt(prompt):
     generated wildcard tags and the requested number of wildcard tags (written as {numberoftags$$tag1|tag2|tag3...})"""
     
     new_prompt = ""
-    split_tags = re.split(r',|{|}| \|', prompt)
+    # split_tags = re.split(r',|{|}|\||]\n', prompt)
+    split_tags = re.split(r'(,|[\{\}\|\]])', prompt)
     print(split_tags)
     for tag_segment in split_tags:
+        if tag_segment == None or tag_segment == " " or tag_segment == "" or tag_segment == ",":  # Skip empty segments
+            continue
+        if tag_segment == tag_segment == "{" or tag_segment == "}" or tag_segment == "|":
+            new_prompt += tag_segment
+            continue
         new_prompt += tag_segment.strip().strip("!?") + ","
         if "?" in tag_segment or "!" in tag_segment:
             if ":" in tag_segment:
