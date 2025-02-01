@@ -82,7 +82,8 @@ def generate_instant_wildcard(tagList, num_tags):
     for tag in tagList:
         wildcard += f"{tag}|"
     wildcard = wildcard[:-1] + "}"
-    if len(tagList) == 1:
+    print(len(tagList))
+    if len(tagList) <= 1:
         return ""
     return wildcard
 
@@ -100,24 +101,42 @@ def process_instant_wildcard_prompt(prompt):
         if tag_segment == tag_segment == "{" or tag_segment == "}" or tag_segment == "|":
             new_prompt += tag_segment
             continue
-        new_prompt += tag_segment.strip().strip("!?") + ","
-        if "?" in tag_segment or "!" in tag_segment:
-            if ":" in tag_segment:
-                tag_segment, num_tags = tag_segment.split(":")
+        stripped_tag = tag_segment.strip()
+        print(f"stripped_tag: {stripped_tag} | tag_segment: {tag_segment}")
+        # just check the first 4 characters of the tag to see if it's a bangtag or a varietytag (the modifiers are alwyas at the start)
+        if "?" in tag_segment[:4] or "!" in tag_segment[:4]:
+            # if there is a ":" in the tag and the last character is a number, then it's a tag with a number of tags
+            if ":" in tag_segment and tag_segment[-1].isdigit():
+                # grab the position of the last ":" NOT THE FIRST, since the tag can have multiple colons (eg. tags like :P or :) )
+                last_colon = stripped_tag.rfind(":")
+                num_tags = stripped_tag[last_colon+1:]
+                stripped_tag = stripped_tag[:last_colon]
                 num_tags = int(num_tags)
+                print(f"specified num_tags: {num_tags}")
             else:
-                tag_segment = tag_segment
+                stripped_tag = stripped_tag
                 num_tags = 1
+            if stripped_tag[0] == "-":
+                stripped_tag = stripped_tag[1:]
+            else : new_prompt += stripped_tag.strip("!?&").replace("\\","") + ","
             print("\n")
-            only_tag = tag_segment.strip().strip("!?")
-            if "!" in tag_segment: # if it's a bangtag
+            only_tag = stripped_tag.strip("!?&").replace("\\","")
+            print(f"only_tag: {only_tag}")
+            if "!" in stripped_tag: # if it's a bangtag
                 related_tags = get_relevant_tags(only_tag)
-                wildcard = generate_instant_wildcard(related_tags,num_tags)
-                new_prompt += wildcard + ","
+                bangTag = generate_instant_wildcard(related_tags,num_tags)
 
-            if "?" in tag_segment: # if it's a varietyTag
+            if "?" in stripped_tag[:4]: # if it's a varietyTag
                 varietyTag = popular_characters_utils.parallel_fetch_uncommon_tags(only_tag, num_tags, 10) + ","
-                print(varietyTag)
+
+            if "&" in tag_segment[:4]:
+                new_prompt += bangTag + ","
                 new_prompt += varietyTag
+
+            else:
+                new_prompt += "{ " + bangTag + " | " + varietyTag + " }"
+
+        else :
+            new_prompt += stripped_tag + ","
 
     return new_prompt
