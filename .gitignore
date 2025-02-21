@@ -7,3 +7,5 @@
 /venv
 /wildcards_generator.py
 /wildcard_generation_testing.py
+/log.txt
+/tag_cache.json
