@@ -1,12 +1,14 @@
 import requests
 import re
 import popular_characters_utils
+import json
+import datetime
 
 # TODO : Fix an issue where if the tag is part of a dynamic prompt eg. {!test | test2} it will not be read and replaced correctly as its missing both the comma and the endline
 
-forbidden_terms = ["aqua","black","blue","brown","green","grey","orange","purple","pink","red","white","yellow","amber","dark","girl","boy","artist","text","official","futa_","futanari","loli","censor"]
+forbidden_terms = popular_characters_utils.forbidden_terms
 
-def nearest_tag(input_tag):
+def nearest_tags(input_tag):
     url = f"https://danbooru.donmai.us/tags.json?search[name_matches]={input_tag}*&limit=100"
     response = requests.get(url)
     response.raise_for_status()
@@ -19,31 +21,30 @@ def nearest_tag(input_tag):
     matching_tags = [tag['name'] for tag in sorted_tags]
     return matching_tags
 
-def get_api_related_tags(tag):
+def fetch_related_tags(tag):
     url = f"https://danbooru.donmai.us/related_tag.json?query={tag}&limit=1000"
     response = requests.get(url)
     response.raise_for_status()
     data = response.json()
     return data['related_tags']  # This gives tags related to the specified query
 
-# print("Directly fetched related tags:", related_tags)
 def get_relevant_tags(tag):
     forbiddenCategories = [1, 5, 3, 4]
     forbiddenTags = ["loli", "shota", "guro", "gore", "scat", "furry", "bestiality","lolidom"]
-    apiTags = get_api_related_tags(tag)
+    apiTags = fetch_related_tags(tag)
 
     # if apiTags == [] it probably means the tag was not written correctly.
     # in that case, we will try to find the nearest tag to the input tag
     if apiTags == []:
         # print(f"Tag {tag} not found...")
-        tag = nearest_tag(tag)
+        tag = nearest_tags(tag)
         if tag == []:
             # print("No similar tags found. Exiting...")
             return []
         else:
             tag = tag[0]
         print(f"Assuming you ment '{tag}'. Proceeding with this tag...")
-        apiTags = get_api_related_tags(tag)
+        apiTags = fetch_related_tags(tag)
 
     apiTags = [tag for tag in apiTags if "censored" not in tag['tag']['name'] and "monochrome" not in tag['tag']['name']]
 
@@ -87,7 +88,73 @@ def generate_instant_wildcard(tagList, num_tags):
         return ""
     return wildcard
 
-def process_instant_wildcard_prompt(prompt):
+def checkForCachedWildcard(tag, tag_type, num_tags):
+    """
+    Function that manages tags caching for the instant wildcard generation.
+    **tag_type** is either "bang" or "variety"
+    If a tag is cached, and is not expired, it will be returned. (expiration time is 1 week by default)
+    If a tag is not cached, it will be added to the cache, along its caching time and returned.
+    """
+    # structure for the json cache file : { "tag" : { "bang" : { "tags" : "tags", "expiration" : "expiration_date"}, "variety" : { "tags" : "tags", "expiration" : "expiration_date"} } }
+    try:
+        with open("tag_cache.json", "r", encoding="utf-8") as f:
+            cache = json.load(f)
+            f.close()
+    except FileNotFoundError:
+        cache = {}
+    except json.JSONDecodeError:
+        cache = {}
+    
+    if tag in cache:
+        if tag_type in cache[tag]:
+            print(f"Tag {tag} found in cache.")
+            if cache[tag][tag_type]["expiration"] > datetime.datetime.now().timestamp():
+                print(f"Tag {tag} is not expired. Checking if the number of tags saved is enough...")
+                # TODO : implement a system where, in case the number of tags is not enough, the function will call the corresponding function to get more tags
+                new_wildcard = cache[tag][tag_type]["tags"]
+                new_wildcard = "{" + str(num_tags) + "$$" + "|".join(new_wildcard) + "}"
+                return new_wildcard
+    # if any of the conditions above are not met, then the tag is not cached or is expired, 
+    # so we will call the corresponding function, get the tags, cache them and the time and return them.
+    print(f"Tag {tag} not found in cache. Proceeding to generate the wildcard...")
+    if tag_type == "bang":
+        tags = get_relevant_tags(tag)
+        print(f"bangtag for {tag} generated, saving it in the cache...")
+        if tag not in cache:
+            cache[tag] = {}
+        # save the tags in the cache
+        cache[tag]["bang"] = {"tags" : tags, "expiration" : datetime.datetime.now().timestamp() + 604800}
+        # the expiration time is 1 week (604800 seconds)
+        with open("tag_cache.json", "w") as f:
+            json.dump(cache, f)
+            f.close()
+        return "{" + str(num_tags) + "$$" + "|".join(tags) + "}"
+    if tag_type == "variety":
+        tags = process_varietytag(tag, 1, return_tags=True)
+        print(f"varietytag for {tag} generated, saving it in the cache...")
+        if tag not in cache:
+            cache[tag] = {}
+        # save the tags in the cache
+        cache[tag]["variety"] = {"tags" : tags, "expiration" : datetime.datetime.now().timestamp() + 604800}
+        # the expiration time is 1 week (604800 seconds)
+        with open("tag_cache.json", "w") as f:
+            json.dump(cache, f)
+            f.close()
+        return "{" + str(num_tags) + "$$" + "|".join(tags) + "}"
+
+
+def process_bangtag(input_tag, num_tags):
+    related_tags = get_relevant_tags(input_tag)
+    bangTag = generate_instant_wildcard(related_tags, num_tags)
+    return bangTag
+
+def process_varietytag(input_tag,num_tags, return_tags=False):
+    if return_tags:
+        varietyTag = popular_characters_utils.parallel_fetch_uncommon_tags(input_tag, num_tags, 20, return_wildcard=False)
+    else : varietyTag = popular_characters_utils.parallel_fetch_uncommon_tags(input_tag, num_tags, 20, return_wildcard=True) + ","
+    return varietyTag
+
+def process_wildcard_prompt(prompt):
     """given a prompt, it finds the instant wildcard syntax (eg. 1girl,1boy,!requestedTag:numberoftags, othertags...) and replaces it with the
     generated wildcard tags and the requested number of wildcard tags (written as {numberoftags$$tag1|tag2|tag3...})"""
     
@@ -106,7 +173,8 @@ def process_instant_wildcard_prompt(prompt):
         # just check the first 4 characters of the tag to see if it's a bangtag or a varietytag (the modifiers are alwyas at the start)
         if "?" in tag_segment[:4] or "!" in tag_segment[:4]:
             # if there is a ":" in the tag and the last character is a number, then it's a tag with a number of tags
-            if ":" in tag_segment and tag_segment[-1].isdigit():
+            if ":" in tag_segment and tag_segment.strip()[-1].isdigit():
+                print("tag has a number of tags specified")
                 # grab the position of the last ":" NOT THE FIRST, since the tag can have multiple colons (eg. tags like :P or :) )
                 last_colon = stripped_tag.rfind(":")
                 num_tags = stripped_tag[last_colon+1:]
@@ -122,19 +190,30 @@ def process_instant_wildcard_prompt(prompt):
             print("\n")
             only_tag = stripped_tag.strip("!?&").replace("\\","")
             print(f"only_tag: {only_tag}")
+            bangTag = ""
+            varietyTag = ""
             if "!" in stripped_tag: # if it's a bangtag
-                related_tags = get_relevant_tags(only_tag)
-                bangTag = generate_instant_wildcard(related_tags,num_tags)
+                # related_tags = get_relevant_tags(only_tag)
+                # bangTag = generate_instant_wildcard(related_tags,num_tags)
+                # bangTag = process_bangtag(only_tag, num_tags)
+                bangTag = checkForCachedWildcard(only_tag, "bang", num_tags)
 
             if "?" in stripped_tag[:4]: # if it's a varietyTag
-                varietyTag = popular_characters_utils.parallel_fetch_uncommon_tags(only_tag, num_tags, 10) + ","
+                # varietyTag = process_varietytag(only_tag, num_tags)
+                varietyTag = checkForCachedWildcard(only_tag, "variety", num_tags)
+                print(f"varietyTag length: {len(varietyTag)}")
+                if len(varietyTag) <= 1:
+                    # varietyTag = process_varietytag(nearest_tags(only_tag)[0], num_tags)
+                    varietyTag = checkForCachedWildcard(nearest_tags(only_tag)[0], "variety", num_tags)
 
             if "&" in tag_segment[:4]:
                 new_prompt += bangTag + ","
                 new_prompt += varietyTag
-
             else:
-                new_prompt += "{ " + bangTag + " | " + varietyTag + " }"
+                if (bangTag and not varietyTag) or (varietyTag and not bangTag):
+                    new_prompt += bangTag + varietyTag
+                else:
+                    new_prompt += "{ " + bangTag + " | " + varietyTag + " }, "
 
         else :
             new_prompt += stripped_tag + ","

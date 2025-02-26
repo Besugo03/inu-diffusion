@@ -177,6 +177,9 @@ def get_related_characters(tag, rank_enabled = False, min_score = 0):
     return [tag for tag in data if tag['tag']['category'] == 4]
 
 def nearest_tag(input_tag, characters_only=False):
+    """Returns the most similar tags to the input tag, in an array. 
+    If characters_only is True, it will only return character tags.
+    Most of the times, this can be useful to correct spelling errors, or missing underscores."""
     url = f"https://danbooru.donmai.us/tags.json?search[name_matches]={input_tag}*&limit=1000"
     response = requests.get(url)
     response.raise_for_status()
@@ -190,6 +193,7 @@ def nearest_tag(input_tag, characters_only=False):
         # print(matching_tags)
     else : 
         matching_tags = [tag['name'] for tag in sorted_tags]
+    print("length : ", len(matching_tags))
     return matching_tags
 
 def boy_or_girl(tag : str) -> str:
@@ -201,14 +205,20 @@ def boy_or_girl(tag : str) -> str:
     boy_tags = ["1boy","male focus","multiple boys","2boys","3boys","4boys","5boys","6+boys"]
     girl_tags = ["1girl","2girls","3girls","4girls","5girls","6+girls","multiple girls"]
     print(f"Looking for {tag}'s sex... ", end="")
-    related_tags_endpoint = f"https://danbooru.donmai.us/related_tag.json?query={tag}"
+    related_tags_endpoint = f"https://danbooru.donmai.us/related_tag.json?query={tag}+solo"
     response = requests.get(related_tags_endpoint)
     response.raise_for_status()
     data = response.json()['related_tags']
     if data == []:
-        tag = nearest_tag(tag, characters_only=True)[0]
+        tag = nearest_tag(tag, characters_only=True)
+        print(tag)
+        if tag == []:
+            print("No similar tags found. Exiting...")
+            return "unknown"
+        else:
+            tag = tag[0]
         print(f"No entries found. Assuming you ment '{tag}'. Proceeding with this tag...")
-        response = requests.get(f"https://danbooru.donmai.us/related_tag.json?query={tag}")
+        response = requests.get(f"https://danbooru.donmai.us/related_tag.json?query={tag}+solo")
         response.raise_for_status()
         data = response.json()['related_tags']
     for tag in data:
@@ -221,7 +231,11 @@ def boy_or_girl(tag : str) -> str:
     print("unknown.")
     return "unknown"
 
-def get_relevant_characters(tag,tag_cap=50, rank_enabled=False, min_score=0):
+def fetch_relevant_characters(tag,tag_cap=50, rank_enabled=False, min_score=0):
+    """
+    Fetches characters related to a given tag, filtering out those with less than min_score posts (default 1500) and those in the forbidden categories.
+    Does not require a tag to be exact, it will find the nearest tag to the input tag.
+    """
     MINIMUM_POSTS = 1500
     forbiddenCategories = [1, 5, 3]
     apiTags = get_related_characters(tag, rank_enabled, min_score)
@@ -240,29 +254,57 @@ def get_relevant_characters(tag,tag_cap=50, rank_enabled=False, min_score=0):
 
     return [tag['tag']['name'] for tag in apiTags if tag['tag']['post_count'] > MINIMUM_POSTS and tag['tag']['category'] not in forbiddenCategories][:tag_cap]
 
-def search_characters_by_tags(tag, tag_cap=50, post_limit=2000):
-    characterCategory = 4
+def fetch_relevant_gendered_characters(tag, tag_cap=50, post_limit=2000, include_only="girl", return_wildcard=True, hot_posts=False):
+    """
+    Fetches characters related to a given tag.
 
-    # check if the tag is actually a correct tag
-    
-    
+    Works like fetch_relevant_characters, but can **filter out certain genders**.
+
+    **include_only** can be either "boy", "girl" or "unknown".
+
+    If **return_wildcard** is True, it will return a string formatted like { tag | tag | tag ...}, otherwise it will return a list of tags.
+
+    **tag_cap** is the maximum amount of tags to return.
+
+    **post_limit** is the amount of posts to fetch from Danbooru.
+    """
+    characterCategory = 4
+    if hot_posts:
+        tag = f"order:rank {tag}"
     results = fetch_danbooru_posts_by_tag(tag, limit=post_limit)
+    if results == []:
+        print(f"Tag {tag} not found...")
+        newTag = nearest_tag(tag)
+        if newTag == []:
+            print("No similar tags found. Exiting...")
+            return []
+        else:
+            newTag = newTag[0]
+        print(f"Assuming you ment '{newTag}'. Proceeding with this tag...")
+        results = fetch_danbooru_posts_by_tag(newTag, limit=post_limit)
     tags = [tag for post in results for tag in post['tag_string_character'].split()]
     
     tag_counts = {}
     for tag in tags:
         tag_counts[tag] = tag_counts.get(tag, 0) + 1
+    # sort the tags by count in descending order
     sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
     # remove all boys
-    to_remove = []
-    for tag in sorted_tags[:tag_cap+10]:
-        if boy_or_girl(tag[0]) == "boy":
-            to_remove.append(tag)
-    for tag in to_remove:
-        sorted_tags.remove(tag)
-    print(sorted_tags[:tag_cap])
-    # print a string made up of the tags name formatted in the way { tag | tag | tag ...}
-    print("{"+(" | ".join([tag[0] for tag in sorted_tags[:tag_cap]]))+"}")
+    valid_tags = []
+    tags_left = tag_cap
+    for tag in sorted_tags:
+        if boy_or_girl(tag[0]) == include_only:
+            valid_tags.append(tag)
+            print(f"tags left : {tags_left}")
+            tags_left -= 1
+            if tags_left == 0:
+                break
+    print(valid_tags)
+    if return_wildcard == False:
+        return(valid_tags)
+    else:
+        # print a string made up of the tags name formatted in the way { tag | tag | tag ...}
+        print("{"+(" | ".join([tag[0] for tag in valid_tags]))+"}")
 
 def fetch_uncommon_tags(input_tag, num_tags, return_wildcard=True):
     # query the related tags endpoint with the tag

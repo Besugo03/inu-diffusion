@@ -203,7 +203,7 @@ def queue_txt2img(
     url = default_endpoint + "/agent-scheduler/v1/queue/txt2img"
     headers = {"Content-Type": "application/json"}
     # print(styles)
-    prompt = iw.process_instant_wildcard_prompt(prompt)
+    prompt = iw.process_wildcard_prompt(prompt)
     data = {
         "prompt": prompt,
         "n_iter" : n_iter,
@@ -249,7 +249,7 @@ def test_txt2img(
     url = default_endpoint + "/sdapi/v1/txt2img"
     headers = {"Content-Type": "application/json"}
     # print(styles)
-    prompt = iw.process_instant_wildcard_prompt(prompt)
+    prompt = iw.process_wildcard_prompt(prompt)
     print(f"prompt : {prompt}")
     data = {
         "prompt": prompt,
