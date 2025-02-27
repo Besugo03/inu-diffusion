@@ -1,43 +1,3 @@
-Ear_piercing
-Ear_protection
-Earrings
-Single_earring
-Headphones
-Pen_behind_ear
-Pencil_behind_ear
-Anatomy of the neck
-Collarbone
-Nape
-Long_neck
-Ascot
-Bolo_tie
-Bowtie
-Choker
-Bell_choker
-Ribbon_choker
-Collar
-Bell_collar
-Dog_collar
-Spiked_collar
-Studded_collar
-Cravat
-Elizabethan_collar
-Feather_boa
-Goggles_around_neck
-Headphones_around_neck
-Lanyard
-Neckerchief
-Necklace
-Chain_necklace
-Flower_necklace
-Lei
-Friendship_charm
-Pearl_necklace
-Pendant
-Amulet
-Locket
-Magatama
-Pentacle
 Neck_ribbon
 Neck_ruff
 Necktie
@@ -47,6 +7,18 @@ Necktie_pull
 Necktie_removed
 Striped_necktie
 Scarf
+Collar_tug
+Adjusting_collar
+Detached_collar
+Fur_collar
+High_collar
+Open_collar
+Popped_collar
+Sailor_collar
+Turtleneck
+Sleeveless_turtleneck
+V-neck
+Wing_collar
 animal_hat
 cat_hat
 bandana
@@ -77,7 +49,6 @@ djasal
 dutch_cap
 earflap_hat
 facinator
-fake_animal_ears
 fedora
 flat_cap
 forehead_protector
@@ -92,7 +63,6 @@ large_bow
 hair_ornament
 crescent_hair_ornament
 food_themed_hair_ornament
-butterfly_hair_ornament
 hair_pin
 hair_ribbon
 hair_tie
@@ -157,7 +127,6 @@ wimple
 witch_hat
 wizard_hat
 veil
-- Shirts and Top wear -
 backless
 backless_outfit
 blouse
@@ -240,7 +209,7 @@ thumb_hole
 puffy_sleeves
 gigot_sleeves
 juliet_sleeves
-puff_and_slash_sleeves
+puff_and_slash_sleeves (panned sleeves)
 puffy_detached_sleeves
 puffy_long_sleeves
 puffy_short_sleeves
@@ -256,7 +225,6 @@ blue_sweater
 red_sweater
 white_sweater
 yellow_sweater
-aran_sweater / cable-knit sweater
 cardigan
 cardigan_shrug
 naked_sweater
@@ -276,7 +244,7 @@ shawl
 vest
 sweater_vest
 waistcoat
-- Pants and Bottom wear -
+fashion
 black_pants
 blue_pants
 green_pants
@@ -341,7 +309,7 @@ microskirt
 miniskirt
 pencil_skirt
 pleated_skirt
-- Legs and Feet -
+fashion
 legwear
 animal_band_legwear
 cat_band_legwear
@@ -359,13 +327,13 @@ pantyhose
 fishnet_pantyhose
 socks
 ankle_socks
-beoseon
+beoseon (Korean, pointed toe)
 bobby_socks
 boot_socks
 collared_socks
 loose_socks
 single_sock
-tabi
+tabi (Japanese, split toe)
 toe_socks
 toeless_socks
 stirrup_socks
@@ -379,7 +347,7 @@ over-kneehighs
 single_thighhigh
 thigh_strap
 zettai_ryouiki
-- Shoes -
+fashion
 black_shoes
 blue_shoes
 brown_shoes
@@ -395,6 +363,8 @@ ankle_strap
 ballet_slippers
 boots
 ankle_boots
+ribbon
+bow
 combat_boots
 cowboy_boots
 spurs
@@ -417,6 +387,7 @@ low_heels
 platform_heels
 stilettos
 wedge_heels
+bandaid
 loafers
 mary_janes
 moccasins
@@ -428,7 +399,7 @@ danghye
 pumps
 saddle_shoes
 sandals
-barefoot_sandals
+barefoot_sandals (soleless shoes)
 clog_sandals
 flip-flops
 geta
@@ -449,43 +420,28 @@ Vans
 split-toe_footwear
 t-strap_shoes
 uwabaki
-- Uniforms and Costumes -
-Ballerina
+fashionBallerina
 ballet_slippers
 tutu
 Band_uniform
 aiguillette
-shako_cap
+shako_cap (cylinder shaped)
 Costume
 Angel_costume
 angel_wings
 halo
 fake_wings
 animal_costume
-animal_ears
 bear_costume
-bear_ears
 boar_costume
 bunny_costume
-bunny_ears
-bunny_tail
 cat_costume
-cat_ears
-cat_tail
 cow_costume
-cow_ears
 horns
-cow_print
-cow_tail
 dog_costume
-dog_ears
-dog_tail
 fox_costume
-fox_ears
-fox_tail
 monkey_costume
 mouse_costume
-mouse_ears
 panda_costume
 penguin_costume
 pig_costume
@@ -494,15 +450,10 @@ antlers
 seal_costume
 sheep_costume
 tiger_costume
-tiger_ears
 tiger_print
-tiger_tail
 wolf_costume
-wolf_ears
-wolf_tail
 Cosplay
 Demon_costume
-demon_tail
 demon_wings
 fake_wings
 fake_horns
@@ -518,7 +469,6 @@ pom_pom_(clothes)
 santa_hat
 witch_costume
 witch_hat
-Cowboy/Cowgirl
 bandanna
 bandolier
 bolo_tie
@@ -528,253 +478,6 @@ cowboy_hat
 stampede_string
 duster
 spurs
-western
-Doctor
-head_mirror
-labcoat
-medical_scrubs
-stethoscope
-surgical_mask
-Gym_uniform
-buruma
-sweat_pants
-harem_outfit
-Maid
-apron
-maid_apron
-maid_cap
-maid_headdress
-Matador
-Miko
-Military_Uniform
-Army
-camouflage
-Marine
-Navy
-Samurai
-kabuto
-Soldier
-Knight
-breastplate
-helm
-Nun
-habit
-rosary
-Nurse
-nurse_cap
-medical_scrubs
-stethoscope
-surgical_mask
-Pilot_Suit
-plugsuit
-Police
-badge
-police_uniform
-Priest
-cassock
-mitre
-stole
-Sailor_Uniform
-dixie_cup_hat
-sailor_collar
-School_Uniform
-blazer
-cardigan
-gakuran
-Meiji_schoolgirl_uniform
-pleated_skirt
-sailor_dress
-serafuku
-uwabaki
-vest
-sweater_vest
-Sports_Uniform
-baseball_uniform
-baseball_cap
-batting_helmet
-basketball_uniform
-cheerleader
-football_uniform
-football_helmet
-soccer_uniform
-softball_uniform
-batting_helmet
-jersey
-Track_Suit
-sweatpants
-sweatshirt
-Waitress
-Wedding_Dress
-bridal_gauntlets
-veil
-wedding_kimono
-Wrestler
-Luchador
-luchador_mask
-Sumo
-wrestling_outfit
-- Swimsuit and Body -
-apron
-smock
-bikesuit
-racing_suit
-bodystocking
-bodysuit
-cape
-capelet
-hooded_cape
-cassock
-dress
-black_dress
-blue_dress
-red_dress
-white_dress
-jumper
-long_dress
-short_dress
-sweater_dress
-tag_group:dress
-leotard
-pajamas
-kigurumi
-nightgown
-robe
-bathrobe
-open_robe
-romper
-swimsuit
-competition_swimsuit
-cross_swimsuit
-polka_dot_swimsuit
-white_swimsuit
-school_swimsuit
-white_school_swimsuit
-bikini
-leaf_bikini
-string_bikini
-micro_bikini
-side-tie_bikini
-sling_bikini
-lowleg_bikini
-thong_bikini
-venus_bikini
-checkered_bikini
-polka_dot_bikini
-sports_bikini
-bikini_top
-tankini
-criss-cross_halter
-speedo
-wetsuit
-sarong
-suit
-black_suit
-blue_suit
-pinstripe_suit
-red_suit
-white_suit
-yellow_suit
-business_suit
-kilt
-lapel_pin
-pant_suit
-skirt_suit
-tailcoat
-tuxedo
-waistcoat
-tunic
-American continents clothes
-cowboy_boots
-cowboy_hat
-stampede_string
-luchador_mask
-Native_American_clothes
-annuraaq
-aztec
-fur_parka
-moccasins
-Native_American_headdress
-sombrero
-Chinese_clothes
-chinadress
-forehead_mark
-hanfu
-ikseongwan
-European_Clothes
-clogs
-cravat
-ascot
-dutch_cap
-hennin
-medieval
-tabard
-Finnish_clothes
-French_clothes
-musketeer
-German_clothes
-dirndl
-lederhosen
-Greek
-gladiator_sandals
-laurel_wreath
-peplos
-pteruges
-toga
-stola
-Scottish_clothes
-kilt
-sporran
-Spanish_clothes
-matador
-Indian_clothes
-sari
-Japanese_clothes
-fundoshi
-yamakasa
-geta
-hachimaki
-hakama
-haori
-haramaki
-kimono
-furisode
-multilayer_kimono
-short_kimono
-tasuki
-wedding_kimono
-yukata
-kimono_skirt
-kigurumi
-Meiji_schoolgirl_uniform
-miko
-nontraditional_miko
-obi
-sarashi
-tabi
-tasuki
-tate_eboshi
-tokin_hat
-uwabaki
-Korean_clothes
-beoseon
-danghye
-gache
-hanbok
-jeonbok
-Korean_traditional_hat
-ayam
-gat
-ikseongwan
-jeonmo
-jokduri
-maedeup
-Mongolian_clothes
-boqtaq
-djasal
-Vietnamese_clothes
-Vietnamese_dress
-- Jewelry and Accessories -
-- Head and Face -
 earphones
 ear_buds
 earrings
@@ -782,7 +485,7 @@ ear_studs
 hoop_earrings
 facial_mark
 forehead_mark
-bindi
+bindi (Hindu, religious)
 glasses
 pince-nez
 tag_group:glasses
@@ -820,8 +523,7 @@ ski_mask
 surgical_mask
 monocle
 nose_ring
-- Neck and Shoulders -
-ascot
+fashionascot
 boa
 bowtie
 cravat
@@ -864,7 +566,8 @@ yellow_scarf
 cowl_neck_scarf
 infinity_scarf
 shawl
-anklet
+tag_group:neck_and_neckwear
+fashionanklet
 arm_belt
 armband
 armlet
@@ -906,8 +609,7 @@ wedding_band
 sleeve_garter
 wristbands
 wrist_cuffs
-- Torso and Miscellaneous -
-belly_chain
+fashionbelly_chain
 belt
 buckles
 studded_belt
@@ -924,8 +626,7 @@ suspenders
 watch
 wristwatch
 pocket_watch
-- Closures, Pins, Badges, ect. -
-aiguillette
+fashionaiguillette
 badge
 buttons
 large_buttons
@@ -950,7 +651,7 @@ silk
 tassel
 toggle
 zipper
--Patterns-
+fashion-Patterns-
 argyle
 asa_no_ha_(pattern)
 bone_pattern
@@ -968,11 +669,10 @@ bishamon_kikkou
 houndstooth
 ogee
 paisley
-plaid / tartan
 polka_dot
-sayagata
-seigaiha
-shippou_(pattern)
+sayagata (紗綾形 interlocking manji)
+seigaiha (simplified wave)
+shippou_(pattern) (七宝文 overlapping circles)
 striped
 diagonal_stripes
 double_vertical_stripe
@@ -1039,7 +739,7 @@ trefoil
 radiation_symbol
 wheel_print
 genjiguruma
--Clothing States-
+fashion-Clothing States-
 burnt_clothes
 torn_clothes
 naked_apron
@@ -1055,7 +755,7 @@ sleeves_past_wrists
 sleeves_pushed_up
 unbuttoned
 unzipped
-Misc
+fashionMisc
 asymmetrical_clothes
 center_frills
 casual
@@ -1068,104 +768,72 @@ oversized_clothes
 undersized_clothes
 see-through
 taut_shirt
-by color and material
-black_dress
-blue_dress
-brown_dress
-green_dress
-grey_dress
-orange_dress
-pink_dress
-purple_dress
-red_dress
-white_dress
-yellow_dress
-beaded_dress
-print_dress
-checkered_dress
-gradient_dress
-lace_dress
-plaid_dress
-polka_dot_dress
-striped_dress
-sweater_dress
-velvet_dress
-by style
-armored_dress
-ball_gown
-bubble_dress
-bustle_dress
-coat_dress
-china_dress
-dirndl
-frock
-frilled_dress
-gown
-hanbok
-hanfu
-jumper
-kimono
-furisode
-multilayer_kimono
-short_kimono
-wedding_kimono
-yukata
-long_dress
-Mongolian_clothes
-nightgown
-open-back_dress
-princess_dress
-sailor_dress
-sari
-short_dress
-1micro_dress
-strapless_dress
-stola
-sundress
-toga
-tutu
-Vietnamese_dress
-wedding_dress
-bridal_gauntlets
-veil
-wedding_kimono
-Socks
-Kneehighs
-Over-kneehighs
-Thighhighs
-Pantyhose
-Aqua_legwear
-Black_legwear
-Blue_legwear
-Brown_legwear
-Green_legwear
-Grey_legwear
-Orange_legwear
-Pink_legwear
-Purple_legwear
-Red_legwear
-White_legwear
-Yellow_legwear
-Gradient_legwear
-Multicolored_legwear
-Argyle_legwear
-Checkered_legwear
-Plaid_legwear
-Polka_dot_legwear
-Print_legwear
-Striped_legwear
-Vertical-striped_legwear
-Asymmetrical_legwear
-Back_seamed_legwear
-Bow_legwear
-Frilled_legwear
-Lace_legwear
-Lace-up_legwear
-Latex_legwear
-Mismatched_legwear
-No_legwear
-Sheer_legwear
-Thighband_pantyhose
-Toeless_legwear
-Torn_pantyhose
-Torn_thighhighs
+fashionglasses
+sunglasses
+fashionStates
+fashionadjusting_glasses
+adjusting_sunglasses
+glasses_askew
+glasses_on_head
+removing_glasses (in process of removing glasses)
+glasses_removed (glasses off, holding)
+sunglasses_on_head
+sunglasses_removed (sunglasses off, holding)
+fashionStyle of glasses
+fashionbroken_glasses
+heart-shaped_glasses
+opaque_glasses (non-transparent)
+rimless_glasses
+round_glasses
+coke-bottle_glasses (thick, round opaque_glasses)
+safety_glasses
+semi-rimless_glasses
+under-rim_glasses
+over-rim_glasses
+shooting_glasses
+fashion
+aqua-framed_glasses
+black-framed_glasses
+blue-framed_glasses
+brown-framed_glasses
+green-framed_glasses
+grey-framed_glasses
+orange-framed_glasses
+pink-framed_glasses
+purple-framed_glasses
+red-framed_glasses
+white-framed_glasses
+yellow-framed_glasses
+fashionPiercing
+fashionGeneral locations
+fashionHead and facial piercings
+Ear_piercing
+— Helix_piercing
+Eyebrow_piercing
+— Anti-eyebrow_piercing
+Eyelid_piercing
+Lip_piercing
+— Labret_piercing
+Nose_piercing
+— Bridge_piercing
+— septum_piercing
+Tongue_piercing
+fashionBody piercings
+Areola_piercing
+Back_piercing
+Navel_piercing
+Nipple_piercing
+— Nipple_chain
+— Nipple_rings
+fashionGenital piercings
+Clitoris_piercing
+— Clitoris_ring
+Labia_piercing
+fourchette_piercing
+Penis_piercing
+— Guiche_piercing
+— Prince_Albert
+Testicle_piercing
+— Lorum_piercing
+fashionMisc.
+Linked_piercing

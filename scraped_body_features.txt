@@ -29,6 +29,10 @@ male_pubic_hair
 mismatched_pubic_hair
 pubic_hair_peek
 stray_pubic_hair
+streaked_hair
+mole
+tattoo
+horn
 Imp
 Kodama
 Lamia
@@ -307,6 +311,8 @@ Medium_breasts
 Large_breasts
 Huge_breasts
 Gigantic_breasts
+small_breasts
+dark-skinned_female
 Aqua_eyes
 Black_eyes
 Blue_eyes

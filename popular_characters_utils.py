@@ -164,7 +164,7 @@ def get_most_scoring_characters(post_limit=1000,results_limit=10, excluded_words
         print("Unsupported API")
         return []
     
-def get_related_characters(tag, rank_enabled = False, min_score = 0):
+def __get_related_characters(tag, rank_enabled = False, min_score = 0):
     url = f"https://danbooru.donmai.us/related_tag.json?query={tag}&category=4&limit=1000"
     #? this other one considers the ranks aswell, pretty cool
     if rank_enabled: 
@@ -238,7 +238,7 @@ def fetch_relevant_characters(tag,tag_cap=50, rank_enabled=False, min_score=0):
     """
     MINIMUM_POSTS = 1500
     forbiddenCategories = [1, 5, 3]
-    apiTags = get_related_characters(tag, rank_enabled, min_score)
+    apiTags = __get_related_characters(tag, rank_enabled, min_score)
     # if apiTags == [] it probably means the tag was not written correctly.
     # in that case, we will try to find the nearest tag to the input tag
     if apiTags == []:
@@ -250,7 +250,7 @@ def fetch_relevant_characters(tag,tag_cap=50, rank_enabled=False, min_score=0):
         else:
             tag = tag[0]
         print(f"Assuming you ment '{tag}'. Proceeding with this tag...")
-        apiTags = get_related_characters(tag)
+        apiTags = __get_related_characters(tag)
 
     return [tag['tag']['name'] for tag in apiTags if tag['tag']['post_count'] > MINIMUM_POSTS and tag['tag']['category'] not in forbiddenCategories][:tag_cap]
 
@@ -306,47 +306,47 @@ def fetch_relevant_gendered_characters(tag, tag_cap=50, post_limit=2000, include
         # print a string made up of the tags name formatted in the way { tag | tag | tag ...}
         print("{"+(" | ".join([tag[0] for tag in valid_tags]))+"}")
 
-def fetch_uncommon_tags(input_tag, num_tags, return_wildcard=True):
-    # query the related tags endpoint with the tag
-    related_tags_endpoint = f"https://danbooru.donmai.us/related_tag.json?query={input_tag}&limit=1000"
-    response = requests.get(related_tags_endpoint).json()
+# def fetch_uncommon_tags(input_tag, num_tags, return_wildcard=True):
+#     # query the related tags endpoint with the tag
+#     related_tags_endpoint = f"https://danbooru.donmai.us/related_tag.json?query={input_tag}&limit=1000"
+#     response = requests.get(related_tags_endpoint).json()
 
-    # we will now calculate a similarity to score ratio.
-    # basically, if a tag is not really close to the input tag, and the two tags are associated with a high scoring in various posts,
-    # we will consider the tag as an 'interesting' tag.
+#     # we will now calculate a similarity to score ratio.
+#     # basically, if a tag is not really close to the input tag, and the two tags are associated with a high scoring in various posts,
+#     # we will consider the tag as an 'interesting' tag.
 
-    # first, we will get the tags associated with the input tag
-    related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
-    print(len(related_tags))
-    # remove all the tags that have a color in them (they are problably hair/eye colors)
-    # the colors will be substrings of the tag
-    related_tags = [tag for tag in related_tags if not any(color in tag for color in forbidden_terms)]
-    far_tags = related_tags[150:250]
+#     # first, we will get the tags associated with the input tag
+#     related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
+#     print(len(related_tags))
+#     # remove all the tags that have a color in them (they are problably hair/eye colors)
+#     # the colors will be substrings of the tag
+#     related_tags = [tag for tag in related_tags if not any(color in tag for color in forbidden_terms)]
+#     far_tags = related_tags[150:250]
 
-    far_tags_data = {}
-    for tag in far_tags:
-        search = f"{tag}%20{input_tag}"
-        print(f"Searching for tag {search}".replace("%20"," "))
-        scores = requests.get(f"https://danbooru.donmai.us/posts.json?tags={search}&limit=200").json()
-        # print(f"Found {len(scores)} posts for tag {search}".replace("%20"," "))
-        scores = [post['score'] for post in scores]
-        average_score = sum(scores) / len(scores)
-        max_score = max(scores)
-        print(f"Average score: {average_score}, Max score: {max_score}")
-        far_tags_data[tag] = (average_score,max_score)
-    sorted_tags_average = sorted(far_tags_data.items(), key=lambda x: x[1][0], reverse=True)
-    sorted_tags_max = sorted(far_tags_data.items(), key=lambda x: x[1][1], reverse=True)
-    print(sorted_tags_average)
-    # return the average scores (only the names)
-    tags = [tag[0] for tag in sorted_tags_average][:num_tags]
-    if return_wildcard:
-        wildcard = "{"
-        for tag in tags:
-            wildcard += f"{tag} | "
-        wildcard = wildcard[:-3] + "}"
-        return wildcard
-    else:
-        return tags
+#     far_tags_data = {}
+#     for tag in far_tags:
+#         search = f"{tag}%20{input_tag}"
+#         print(f"Searching for tag {search}".replace("%20"," "))
+#         scores = requests.get(f"https://danbooru.donmai.us/posts.json?tags={search}&limit=200").json()
+#         # print(f"Found {len(scores)} posts for tag {search}".replace("%20"," "))
+#         scores = [post['score'] for post in scores]
+#         average_score = sum(scores) / len(scores)
+#         max_score = max(scores)
+#         print(f"Average score: {average_score}, Max score: {max_score}")
+#         far_tags_data[tag] = (average_score,max_score)
+#     sorted_tags_average = sorted(far_tags_data.items(), key=lambda x: x[1][0], reverse=True)
+#     sorted_tags_max = sorted(far_tags_data.items(), key=lambda x: x[1][1], reverse=True)
+#     print(sorted_tags_average)
+#     # return the average scores (only the names)
+#     tags = [tag[0] for tag in sorted_tags_average][:num_tags]
+#     if return_wildcard:
+#         wildcard = "{"
+#         for tag in tags:
+#             wildcard += f"{tag} | "
+#         wildcard = wildcard[:-3] + "}"
+#         return wildcard
+#     else:
+#         return tags
 
 def parallel_fetch_uncommon_tags(input_tag, num_tags, tag_cap, return_wildcard=True, max_workers=25, delay=0.1):
     # query the related tags endpoint with the tag

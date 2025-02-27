@@ -65,7 +65,6 @@ def generateWildcard(chosenDir, generationMode: Literal["first", "allWithOR", "f
     wildcard = wildcard[:-3] + "}"
     return wildcard
 
-
 def getLoraName(file_path):
     # Open the .safetensors file
     with safe_open(file_path, framework="pt", device="cpu") as f:
