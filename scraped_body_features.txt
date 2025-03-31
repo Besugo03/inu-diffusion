@@ -33,6 +33,7 @@ streaked_hair
 mole
 tattoo
 horn
+split-color_hair
 Imp
 Kodama
 Lamia

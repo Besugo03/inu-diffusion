@@ -157,7 +157,6 @@ wimple
 witch_hat
 wizard_hat
 veil
-- Shirts and Top wear -
 backless
 backless_outfit
 blouse
@@ -168,6 +167,7 @@ arm_slit_cape
 capelet
 hooded_cape
 cloak
+hood
 hooded_cloak
 crop_top
 corset
@@ -276,7 +276,6 @@ shawl
 vest
 sweater_vest
 waistcoat
-- Pants and Bottom wear -
 black_pants
 blue_pants
 green_pants
@@ -341,7 +340,6 @@ microskirt
 miniskirt
 pencil_skirt
 pleated_skirt
-- Legs and Feet -
 legwear
 animal_band_legwear
 cat_band_legwear
@@ -379,7 +377,6 @@ over-kneehighs
 single_thighhigh
 thigh_strap
 zettai_ryouiki
-- Shoes -
 black_shoes
 blue_shoes
 brown_shoes
@@ -449,7 +446,6 @@ Vans
 split-toe_footwear
 t-strap_shoes
 uwabaki
-- Uniforms and Costumes -
 Ballerina
 ballet_slippers
 tutu
@@ -613,7 +609,6 @@ Luchador
 luchador_mask
 Sumo
 wrestling_outfit
-- Swimsuit and Body -
 apron
 smock
 bikesuit
@@ -773,8 +768,6 @@ boqtaq
 djasal
 Vietnamese_clothes
 Vietnamese_dress
-- Jewelry and Accessories -
-- Head and Face -
 earphones
 ear_buds
 earrings
@@ -820,7 +813,6 @@ ski_mask
 surgical_mask
 monocle
 nose_ring
-- Neck and Shoulders -
 ascot
 boa
 bowtie
@@ -906,7 +898,6 @@ wedding_band
 sleeve_garter
 wristbands
 wrist_cuffs
-- Torso and Miscellaneous -
 belly_chain
 belt
 buckles
@@ -924,7 +915,6 @@ suspenders
 watch
 wristwatch
 pocket_watch
-- Closures, Pins, Badges, ect. -
 aiguillette
 badge
 buttons

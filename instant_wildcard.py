@@ -205,6 +205,8 @@ def process_wildcard_prompt(prompt):
                 if len(varietyTag) <= 1:
                     # varietyTag = process_varietytag(nearest_tags(only_tag)[0], num_tags)
                     varietyTag = checkForCachedWildcard(nearest_tags(only_tag)[0], "variety", num_tags)
+                if varietyTag.endswith("$$}"): 
+                    varietyTag = ""
 
             if "&" in tag_segment[:4]:
                 new_prompt += bangTag + ","

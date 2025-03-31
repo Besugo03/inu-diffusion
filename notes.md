@@ -36,6 +36,8 @@ Things the frontend should include :
   - Txt2Img
   - wildcard processing on-generation
   - wildcard instant-expand
+  - Lora autocomplete instant-expand
+  - Lora directory wildcard generation and autocomplete
   - Potential interface for tree-like prompt-wildcard generation where you expand a single tag and then choose some to expand it into
   - both text and visual input
   - LoraNado-like lora randomization

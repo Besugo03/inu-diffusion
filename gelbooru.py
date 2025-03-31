@@ -81,7 +81,7 @@ def getPostTags(pid: typing.Union[int, str]) -> list[str]:
     if isinstance(pid, str):
         # https://gelbooru.com/index.php?page=post&s=view&id=11350935&tags=score%3A%3E150
         # match the regex for the id and get the id
-        pid = re.search(r'id=(\d+)&', pid).group(1)
+        pid = re.search(r'id=(\d+)', pid).group(1)
         print(pid)
         pid = int(pid)
 
@@ -98,6 +98,8 @@ def filterTagsCategory(tags: list[str], category: typing.Union[int, list[int]]) 
     1 = Copyright
     3 = Artist
     4 = Character
+
+    Tags need to be passed as a list of strings.
     """
     if isinstance(category, str):
         category = [category]

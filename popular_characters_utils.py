@@ -111,7 +111,8 @@ def get_popular_tags(post_limit, tag_limit=10):
     try:
         posts = fetch_all_danbooru_posts(post_limit)
         print(f"Fetched {len(posts)} posts")
-        tags = [tag for post in posts for tag in post['tag_string_character'].split()]
+        # tags = [tag for post in posts for tag in post['tag_string_character'].split()]
+        tags = [tag for post in posts for tag in post['tag_string'].split()]
         # if the tag is not a character tag or a general tag, remove it.
         # to know this, we will send a request to the tags endpoint and check the category of the tag.
         # if the category is 0, it is a general tag. If it is 4, it is a character tag.
