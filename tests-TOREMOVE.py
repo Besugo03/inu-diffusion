@@ -17,7 +17,7 @@ def wildcardFromTagGroup(tag_group : str, return_array : bool) -> str|list:
     links = [link for link in links if "tag group" not in link.lower() and "tag_group" not in link.lower()]
     return "{"+"|".join(links)+"}"
 
-groups = ["eyes_tags"]
+groups = ["body_parts"]
 
 for group in groups:
     print(wildcardFromTagGroup(group.lower(), False))

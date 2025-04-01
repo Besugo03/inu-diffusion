@@ -1,10 +1,11 @@
 import os
 import requests
-import concurrent.futures
 import time
 import dotenv
+import instant_wildcard as iw
 
-forbidden_terms = ["aqua","black","blue","brown","green","grey","orange","purple","pink","red","white","yellow","amber","dark","girl","boy","artist","text","official","futa_","futanari","loli","censor"]
+# forbiddenTerms = iw.forbidden_terms
+# "dark" could possibly be added.
 
 # Configuration
 # api = rule34 or danbooru
@@ -349,63 +350,6 @@ def fetch_relevant_gendered_characters(tag, tag_cap=50, post_limit=2000, include
 #     else:
 #         return tags
 
-def parallel_fetch_uncommon_tags(input_tag, num_tags, tag_cap, return_wildcard=True, max_workers=25, delay=0.1):
-    # query the related tags endpoint with the tag
-    related_tags_endpoint = f"https://danbooru.donmai.us/related_tag.json?query={input_tag}&limit=1000"
-    response = requests.get(related_tags_endpoint).json()
 
-    # first, we will get the tags associated with the input tag
-    related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
-    print(len(related_tags))
-    # remove all the tags that have a color in them (they are probably hair/eye colors)
-    related_tags = [tag for tag in related_tags if not any(color in tag for color in forbidden_terms)]
-    far_tags = related_tags[150:250]
-
-    def fetch_tag_data(tag):
-        search = f"{tag}%20{input_tag}"
-        print(f"Searching for tag {search}".replace("%20", " "))
-        response = requests.get(f"https://danbooru.donmai.us/posts.json?tags={search}&limit=200")
-        if response.status_code == 200:
-            try:
-                scores = response.json()
-                scores = [post['score'] for post in scores]
-                if scores:
-                    average_score = sum(scores) / len(scores)
-                    max_score = max(scores)
-                else:
-                    average_score = 0
-                    max_score = 0
-            except requests.exceptions.JSONDecodeError:
-                print(f"Error decoding JSON for tag {search}")
-                average_score = 0
-                max_score = 0
-        else:
-            print(f"Error fetching data for tag {search}: {response.status_code}")
-            average_score = 0
-            max_score = 0
-        print(f"Average score: {average_score}, Max score: {max_score}")
-        return tag, (average_score, max_score)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = []
-        for tag in far_tags:
-            futures.append(executor.submit(fetch_tag_data, tag))
-            time.sleep(delay)  # Add delay between requests
-
-        results = [future.result() for future in concurrent.futures.as_completed(futures)]
-
-    far_tags_data = dict(results)
-    sorted_tags_average = sorted(far_tags_data.items(), key=lambda x: x[1][0], reverse=True)
-    sorted_tags_max = sorted(far_tags_data.items(), key=lambda x: x[1][1], reverse=True)
-    print(sorted_tags_average)
-    # return the average scores (only the names)
-    tags = [tag[0] for tag in sorted_tags_average][:tag_cap]
-    if return_wildcard:
-        wildcard = "{"
-        wildcard += f"{num_tags}$$"
-        for tag in tags:
-            wildcard += f"{tag} | "
-        wildcard = wildcard[:-3] + "}"
-        return wildcard if len(tags) > 0 else ""
-    else:
-        return tags
+    
+# print(parallel_fetch_uncommon_tags("femdom", 10, 10, return_wildcard=True, max_workers=25, delay=0.1))
