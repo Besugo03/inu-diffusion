@@ -105,6 +105,7 @@ def parallel_fetch_uncommon_tags(
 
     # first, we will get the tags associated with the input tag
     related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
+    related_tags = tag_filterer.filter_tags(related_tags)
     print(len(related_tags))
     # remove all the tags that have a color in them (they are probably hair/eye colors)
     # related_tags = [tag for tag in related_tags if not any(color in tag for color in forbidden_terms)]
@@ -112,6 +113,7 @@ def parallel_fetch_uncommon_tags(
         json.dump(related_tags, f)
         f.close()
     far_tags = related_tags[150:250]
+    print(f"Far tags: {far_tags}")
     # log the related tags for debugging to a json
     with open("trimmed_related_tags.json", "w") as f:
         json.dump(far_tags, f)
@@ -151,11 +153,22 @@ def parallel_fetch_uncommon_tags(
         results = [future.result() for future in concurrent.futures.as_completed(futures)]
 
     far_tags_data = dict(results)
-    sorted_tags_average = sorted(far_tags_data.items(), key=lambda x: x[1][0], reverse=True)
-    sorted_tags_max = sorted(far_tags_data.items(), key=lambda x: x[1][1], reverse=True)
-    print(sorted_tags_average)
-    # return the average scores (only the names)
-    tags = [tag[0] for tag in sorted_tags_average][:tag_cap]
+    # for each tag, also add its position in the list from the related tags
+    far_tags_data = {tag: (far_tags.index(tag), far_tags_data[tag][0], far_tags_data[tag][1]) for tag in far_tags_data}
+    print("Far tags data:")
+    print(far_tags_data)
+    for tag in far_tags_data:
+        # calculate the "niche score" for each tag
+        # farther tags will have a higher niche score
+        # it is also influenced by the average and max scores
+        # we use the log function to make the niche score more pronounced
+        # the log function will increase the value of the niche score, but it will also make the difference between the scores more pronounced
+        # this is because the log function is not linear, but logarithmic
+        import math
+        niche_score = math.log(far_tags_data[tag][0] + 1) * (far_tags_data[tag][1] + far_tags_data[tag][2])
+        far_tags_data[tag] = (niche_score, far_tags_data[tag][1], far_tags_data[tag][2])
+    sorted_tags_niche = sorted(far_tags_data.items(), key=lambda x: x[1][0], reverse=True)
+    tags = [tag[0] for tag in sorted_tags_niche][:tag_cap]
     if return_wildcard:
         wildcard = "{"
         wildcard += f"{num_tags}$$"
@@ -214,7 +227,7 @@ def process_wildcard_prompt(prompt):
             if "?" in stripped_tag[:4]: # if it's a varietyTag
                 varietyTag = cache.queryForWildTag(only_tag, "variety", num_tags)
                 if varietyTag == None:
-                    varietyTag = parallel_fetch_uncommon_tags(only_tag, num_tags, 10, return_wildcard=False)
+                    varietyTag = parallel_fetch_uncommon_tags(only_tag, num_tags, 20, return_wildcard=False)
                     # save the varietyTag in the cache with an expiration time of 1 week
                     cache.saveWildTag(only_tag, "variety", varietyTag, datetime.datetime.now().timestamp() + 604800)
                 varietyTag = tag_filterer.filter_tags(varietyTag)
