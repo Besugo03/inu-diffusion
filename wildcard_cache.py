@@ -2,9 +2,6 @@ import datetime
 import json
 from typing import Literal
 
-# from instant_wildcard import get_relevant_tags, process_varietytag
-
-
 def saveWildTag(tag, tag_type, expanded_tags, expiration):
     """
     Function that saves the expanded tags for a tag in the cache.
