@@ -9,3 +9,5 @@
 /wildcard_generation_testing.py
 /log.txt
 /tag_cache.json
+related_tags.json
+trimmed_related_tags.json

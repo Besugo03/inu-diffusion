@@ -104,7 +104,18 @@ def parallel_fetch_uncommon_tags(
     response = requests.get(related_tags_endpoint).json()
 
     # first, we will get the tags associated with the input tag
+    if response['related_tags'] == []:
+        print(f"Tag {input_tag} not found...")
+        input_tag = nearest_tags(input_tag)
+        if input_tag == []:
+            print("No similar tags found. Exiting...")
+            return []
+        else:
+            input_tag = input_tag[0]
+        print(f"Assuming you ment '{input_tag}'. Proceeding with this tag...")
+        response = requests.get(f"https://danbooru.donmai.us/related_tag.json?query={input_tag}&limit=1000").json()
     related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
+    print(f"Related tags: {related_tags}")
     related_tags = tag_filterer.filter_tags(related_tags)
     print(len(related_tags))
     # remove all the tags that have a color in them (they are probably hair/eye colors)
