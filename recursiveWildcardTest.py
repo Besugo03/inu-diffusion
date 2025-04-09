@@ -95,16 +95,16 @@ def findallMatchingBrackets(string):
 # 1. Chiama la funzione sulla stringa
 def recursivePromptExpand(prompt : str, givenPrefix = None):
     # 2. vede se c'é il pattern di prefix seguito da una graffa aperta
-    matches = re.search(r'[!?&-]{', prompt)
+    matches = re.search(r'[!?&-][?!&-]?[?!&-]?[?!&-]?{', prompt)
     print("matches: ", matches)
     # 3. se c'é, allora prende l'indice del primo match
     if matches:
-        matches = re.search(r'[!?&-]{', prompt).start()
+        matches = re.search(r'[!?&-][?!&-]?[?!&-]?[?!&-]?{', prompt).start()
         matchStart = matches
-        matchEnd = re.search(r'[!?&-]\{', prompt).end()
+        matchEnd = re.search(r'[!?&-][?!&-]?[?!&-]?[?!&-]?{', prompt).end()
         matchPrefixes = prompt[matchStart-1:matchEnd-1]
         print(matchPrefixes)
-        bracketEnd = findMatchingBracket(prompt, re.search(r'[!?&-]{', prompt).end())
+        bracketEnd = findMatchingBracket(prompt, re.search(r'[!?&-][?!&-]?[?!&-]?[?!&-]?{', prompt).end())
         # 4. chiama la funzione passando quali sono i prefix passati
         endPrompt = recursivePromptExpand(prompt[matchEnd:bracketEnd], matchPrefixes)
         prompt =  prompt[:matchStart] + "{" + endPrompt + "}" + prompt[bracketEnd+1:]
