@@ -1,4 +1,4 @@
-def __nearest_tags(input_tag):
+def __nearest_tags(input_tag : str) -> list:
     import requests as requests
 
     url = f"https://danbooru.donmai.us/tags.json?search[name_matches]={input_tag}*&limit=100"
@@ -13,7 +13,7 @@ def __nearest_tags(input_tag):
     matching_tags = [tag['name'] for tag in sorted_tags]
     return matching_tags
 
-def __fetch_related_tags(tag):
+def __fetch_related_tags(tag : str) -> list:
     import requests as requests
 
     url = f"https://danbooru.donmai.us/related_tag.json?query={tag}&limit=1000"
@@ -22,7 +22,7 @@ def __fetch_related_tags(tag):
     data = response.json()
     return data['related_tags']  # This gives tags related to the specified query
 
-def __get_relevant_tags(tag, include_characters=False):
+def __get_relevant_tags(tag : str, include_characters : bool =False) -> list:
     
     import tag_filterer
     forbiddenCategories = [1, 5, 3]
@@ -177,7 +177,7 @@ def __parallel_fetch_uncommon_tags(
     else:
         return tags
 
-def process_wildcard_prompt(prompt):
+def process_wildcard_prompt(prompt : str) -> str:
     """given a prompt, it finds the instant wildcard syntax (eg. 1girl,1boy,!requestedTag:numberoftags, othertags...) and replaces it with the
     generated wildcard tags and the requested number of wildcard tags (written as {numberoftags$$tag1|tag2|tag3...})"""
     
@@ -252,3 +252,5 @@ def process_wildcard_prompt(prompt):
 
 
 __all__ = ["process_wildcard_prompt"]
+
+__fetch_related_tags("1girl, solo")

@@ -1,6 +1,5 @@
 import requests
 import re
-from fuzzywuzzy import fuzz
 
 def wildcardFromTagGroup(tag_group : str, return_array : bool) -> str|list:
     """
@@ -14,10 +13,10 @@ def wildcardFromTagGroup(tag_group : str, return_array : bool) -> str|list:
     # match all the occurrences of links (delimited by [[ and ]])
     # and then extract the text between the brackets
     links = re.findall(r"\[\[(.*?)\]\]", responseBody)
-    links = [link for link in links if "tag group" not in link.lower() and "tag_group" not in link.lower()]
+    links = [link for link in links if "tag group" not in link.lower() and "tag_group" not in link.lower() and "list of" not in link.lower()]
     return "{"+"|".join(links)+"}"
 
-groups = ["body_parts"]
+groups = ["body_parts","image_composition","posture","nudity","sex_objects"]
 
 for group in groups:
     print(wildcardFromTagGroup(group.lower(), False))
