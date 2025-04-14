@@ -1,4 +1,6 @@
 import re
+from instant_wildcard import process_wildcard_prompt
+import tag_filterer as ft
 
 def split_respecting_braces(text, delimiter):
     """
@@ -61,7 +63,6 @@ def parse_nested_line(line):
 
     return result
 
-exampleString = "test, uno, !?{due, tre | !{quattro, cinque}, sei}"
 # this should be render out as
 # test, uno, {!due, !?tre, !{quattro, !cinque}, !?sei}
 
@@ -116,8 +117,42 @@ def recursivePromptExpand(prompt : str, givenPrefix = None):
     for sublist in tagsList:
         for tag in sublist:
             newPrompt += givenPrefix + tag + ", "
+            # newPrompt += process_wildcard_prompt(tag) + ", "
         newPrompt += " | "
     newPrompt = newPrompt[:-2]
     return newPrompt
+ft.forbiddenTags += ["hetero","vagin","pussy","breast","deflor","animal"]
 
-print(recursivePromptExpand(exampleString))
+test = process_wildcard_prompt("1girl, ubel \(sousou no frieren\), r!feet, r!nude")
+with open ("test.txt", "w", encoding="utf-8") as f:
+    f.write(test)
+    f.close()
+
+pattern = r"{(\d\$\$[^{}]*)}"
+prefixPattern= r"([!\?\-&][!\?\-&]?[!\?\-&]?[!\?\-&]?){[^{]*{?[^{}]*}?[^}]*}}"
+finalString = ""
+print(re.findall(prefixPattern, testString))
+if re.findall(prefixPattern, testString):
+    prefix = re.search(prefixPattern, testString).group(1)
+    print(prefix)
+    splitString = re.split(pattern, testString)
+    print(splitString)
+    for subString in splitString:
+        if re.findall(r"\d*\$\$.*",subString):
+            finalString += "{"
+            singletags = subString.split("|")
+            for tag in singletags:
+                tag = tag.strip()
+                if "$$" in tag:
+                    finalString += tag.replace("$$",f"$$ {prefix}") + ", "
+                else:
+                    finalString += "| " + prefix + tag + ", "
+            finalString = finalString[:-2] + "}, "
+        else:
+            if "!" in subString or "?" in subString or "&" in subString or "-" in subString:
+                finalString += ",".join(subString.split(",")[:-1]) + ", "
+            else:
+                finalString += subString + ", "
+
+print("finalString :")
+print(finalString)

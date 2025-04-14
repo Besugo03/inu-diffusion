@@ -48,7 +48,7 @@ Things the frontend should include :
   - mouse-over zoom for easier image inspection / image-by-image view
 
 - Research/prompt generation tab
-  - Get trending characters/
+  - Get trending characters
   - Browse some danbooru images for recreating
     - Bar under each one to tell how well-tagged the image is
     - Recreate image, which obviously has a better effect with more well-tagged images

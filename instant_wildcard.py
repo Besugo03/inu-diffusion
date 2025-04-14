@@ -67,13 +67,16 @@ def __get_relevant_tags(tag : str, include_characters : bool =False) -> list:
     final_tags = tag_filterer.filter_tags(final_tags)
     return final_tags
 
-def __list_to_wildcard(tagList : list, num_tags : int) -> str:
+def __list_to_wildcard(tagList : list, num_tags : int, modifiers :str) -> str:
     """Generates a wildcard tag for the given list of tags, written in the standard Sd-dynamic prompts format
     (e.g. {tag1|tag2|tag3})...."""
     wildcard = "{"
     wildcard += f"{num_tags}$$"
     for tag in tagList:
-        wildcard += f"{tag}|"
+        if "r" in modifiers and ("!" in modifiers or "?" in modifiers):
+            wildcard += process_wildcard_prompt(f"{modifiers[1:]}{tag}") + "|"
+        else:
+            wildcard += f"{tag}|"
     wildcard = wildcard[:-1] + "}"
     print(len(tagList))
     if len(tagList) <= 1:
@@ -188,12 +191,12 @@ def process_wildcard_prompt(prompt : str) -> str:
 
     new_prompt = ""
     # split_tags = re.split(r',|{|}|\||]\n', prompt)
-    split_tags = re.split(r'(,|[\{\}\|\]])', prompt)
+    split_tags = re.split(r'(,|[\{\}\|]|\d\$\$)', prompt)
     print(split_tags)
     for tag_segment in split_tags:
         if tag_segment == None or tag_segment == " " or tag_segment == "" or tag_segment == ",":  # Skip empty segments
             continue
-        if tag_segment == tag_segment == "{" or tag_segment == "}" or tag_segment == "|":
+        if tag_segment == tag_segment == "{" or tag_segment == "}" or tag_segment == "|" or re.match(r"[!\?\-&][!\?\-&]?[!\?\-&]?[!\?\-&]?$", tag_segment):
             new_prompt += tag_segment
             continue
         stripped_tag = tag_segment.strip()
@@ -211,32 +214,37 @@ def process_wildcard_prompt(prompt : str) -> str:
             else:
                 stripped_tag = stripped_tag
                 num_tags = 1
-            if stripped_tag[0] == "-":
-                stripped_tag = stripped_tag[1:]
-            else : new_prompt += stripped_tag.strip("!?&").replace("\\","") + ","
-            only_tag = stripped_tag.strip("!?&").replace("\\","")
             bangTag = ""
             varietyTag = ""
 
-            if "!" in stripped_tag: # if it's a bangtag
+            if re.match(r"r?[!-?&]+(.*)", stripped_tag):
+                print(f"Tag {stripped_tag} contains modifier tags")
+                only_tag = re.findall(r"r?[!-?&]+(.*)", stripped_tag)[0]
+                modifiers = re.findall(r"(r?[!-?&]+).*", stripped_tag)[0]
+
+            if "!" in modifiers: # if it's a bangtag
                 relevant_tags = cache.queryForWildTag(only_tag, "bang", num_tags)
                 if relevant_tags == None:
                     relevant_tags = __get_relevant_tags(only_tag)
                     # save the bangTag in the cache with an expiration time of 1 week
                     cache.saveWildTag(only_tag, "bang", relevant_tags, datetime.datetime.now().timestamp() + 604800)
                 relevant_tags = tag_filterer.filter_tags(relevant_tags)
-                bangTag = __list_to_wildcard(relevant_tags, num_tags)
+                bangTag = __list_to_wildcard(relevant_tags, num_tags, modifiers)
 
-            if "?" in stripped_tag[:4]: # if it's a varietyTag
+            if "?" in modifiers: # if it's a varietyTag
                 varietyTag = cache.queryForWildTag(only_tag, "variety", num_tags)
                 if varietyTag == None:
                     varietyTag = __parallel_fetch_uncommon_tags(only_tag, num_tags, 20, return_wildcard=False)
                     # save the varietyTag in the cache with an expiration time of 1 week
                     cache.saveWildTag(only_tag, "variety", varietyTag, datetime.datetime.now().timestamp() + 604800)
                 varietyTag = tag_filterer.filter_tags(varietyTag)
-                varietyTag = __list_to_wildcard(varietyTag, num_tags)
+                varietyTag = __list_to_wildcard(varietyTag, num_tags, modifiers)
 
-            if "&" in tag_segment[:4]:
+            if stripped_tag[0] == "-":
+                stripped_tag = stripped_tag[1:]
+            else : new_prompt += only_tag + ","
+
+            if "&" in modifiers:
                 new_prompt += bangTag + ","
                 new_prompt += varietyTag
             else:
@@ -244,6 +252,7 @@ def process_wildcard_prompt(prompt : str) -> str:
                     new_prompt += bangTag + varietyTag
                 else:
                     new_prompt += "{ " + bangTag + " | " + varietyTag + " }, "
+            
 
         else :
             new_prompt += stripped_tag + ","
@@ -252,5 +261,3 @@ def process_wildcard_prompt(prompt : str) -> str:
 
 
 __all__ = ["process_wildcard_prompt"]
-
-__fetch_related_tags("1girl, solo")
