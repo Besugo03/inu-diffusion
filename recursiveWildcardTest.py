@@ -121,9 +121,9 @@ def recursivePromptExpand(prompt : str, givenPrefix = None):
         newPrompt += " | "
     newPrompt = newPrompt[:-2]
     return newPrompt
-ft.forbiddenTags += ["hetero","vagin","pussy","breast","deflor","animal"]
+ft.forbiddenTags += ["hetero","vagin","pussy","breast","deflo","animal","necro","torture","severing","pee","scat","futa","blood","injury","mutil","loli","shota"]
 
-test = process_wildcard_prompt("1girl, ubel \(sousou no frieren\), r!feet, r!nude")
+test = process_wildcard_prompt("")
 with open ("test.txt", "w", encoding="utf-8") as f:
     f.write(test)
     f.close()

@@ -77,7 +77,7 @@ def __list_to_wildcard(tagList : list, num_tags : int, modifiers :str) -> str:
             wildcard += process_wildcard_prompt(f"{modifiers[1:]}{tag}") + "|"
         else:
             wildcard += f"{tag}|"
-    wildcard = wildcard[:-1] + "}"
+    wildcard = wildcard[:-1] + "},"
     print(len(tagList))
     if len(tagList) <= 1:
         return ""
