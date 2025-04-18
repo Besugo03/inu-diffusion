@@ -42,9 +42,9 @@ def queryForWildTag(tag : str, tag_type : Literal["bang","variety"], num_tags : 
     
     if tag in cache:
         if tag_type in cache[tag]:
-            print(f"Tag {tag} found in cache.")
+            # print(f"Tag {tag} found in cache.")
             if cache[tag][tag_type]["expiration"] > datetime.datetime.now().timestamp():
-                print(f"Tag {tag} is not expired. Checking if the number of tags saved is enough...")
+                # print(f"Tag {tag} is not expired. Checking if the number of tags saved is enough...")
                 # TODO : implement a system where, in case the number of tags is not enough, the function will call the corresponding function to get more tags
                 cached_tags = cache[tag][tag_type]["tags"]
                 return cached_tags

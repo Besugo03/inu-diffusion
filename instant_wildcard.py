@@ -17,6 +17,7 @@ def __fetch_related_tags(tag : str) -> list:
     import requests as requests
 
     url = f"https://danbooru.donmai.us/related_tag.json?query={tag}&limit=1000"
+    # TODO : add error handling for the requests right here
     response = requests.get(url)
     response.raise_for_status()
     data = response.json()
@@ -40,7 +41,7 @@ def __get_relevant_tags(tag : str, include_characters : bool =False) -> list:
             return []
         else:
             tag = tag[0]
-        print(f"Assuming you ment '{tag}'. Proceeding with this tag...")
+        # print(f"Assuming you ment '{tag}'. Proceeding with this tag...")
         apiTags = __fetch_related_tags(tag)
 
     # TODO : put some actual forbidden tags here, possibly to include in the filtering .py file
@@ -78,7 +79,7 @@ def __list_to_wildcard(tagList : list, num_tags : int, modifiers :str) -> str:
         else:
             wildcard += f"{tag}|"
     wildcard = wildcard[:-1] + "},"
-    print(len(tagList))
+    # print(len(tagList))
     if len(tagList) <= 1:
         return ""
     return wildcard
@@ -100,19 +101,19 @@ def __parallel_fetch_uncommon_tags(
 
     # first, we will get the tags associated with the input tag
     if response['related_tags'] == []:
-        print(f"Tag {input_tag} not found...")
+        # print(f"Tag {input_tag} not found...")
         input_tag = __nearest_tags(input_tag)
         if input_tag == []:
-            print("No similar tags found. Exiting...")
+            # print("No similar tags found. Exiting...")
             return []
         else:
             input_tag = input_tag[0]
-        print(f"Assuming you ment '{input_tag}'. Proceeding with this tag...")
+        # print(f"Assuming you ment '{input_tag}'. Proceeding with this tag...")
         response = requests.get(f"https://danbooru.donmai.us/related_tag.json?query={input_tag}&limit=1000").json()
     related_tags = [tag['tag']['name'] for tag in response['related_tags'] if tag['tag']['category'] == 0]
-    print(f"Related tags: {related_tags}")
+    # print(f"Related tags: {related_tags}")
     related_tags = tag_filterer.filter_tags(related_tags)
-    print(len(related_tags))
+    # print(len(related_tags))
     # remove all the tags that have a color in them (they are probably hair/eye colors)
     # related_tags = [tag for tag in related_tags if not any(color in tag for color in forbidden_terms)]
     far_tags = related_tags[150:250]
@@ -122,7 +123,7 @@ def __parallel_fetch_uncommon_tags(
     
     def fetch_tag_data(tag):
         search = f"{tag}%20{input_tag}"
-        print(f"Searching for tag {search}".replace("%20", " "))
+        # print(f"Searching for tag {search}".replace("%20", " "))
         response = requests.get(f"https://danbooru.donmai.us/posts.json?tags={search}&limit=200")
         if response.status_code == 200:
             try:
@@ -135,14 +136,14 @@ def __parallel_fetch_uncommon_tags(
                     average_score = 0
                     max_score = 0
             except requests.exceptions.JSONDecodeError:
-                print(f"Error decoding JSON for tag {search}")
+                # print(f"Error decoding JSON for tag {search}")
                 average_score = 0
                 max_score = 0
         else:
-            print(f"Error fetching data for tag {search}: {response.status_code}")
+            # print(f"Error fetching data for tag {search}: {response.status_code}")
             average_score = 0
             max_score = 0
-        print(f"Average score: {average_score}, Max score: {max_score}")
+        # print(f"Average score: {average_score}, Max score: {max_score}")
         return tag, (average_score, max_score)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -156,8 +157,8 @@ def __parallel_fetch_uncommon_tags(
     far_tags_data = dict(results)
     # for each tag, also add its position in the list from the related tags
     far_tags_data = {tag: (far_tags.index(tag), far_tags_data[tag][0], far_tags_data[tag][1]) for tag in far_tags_data}
-    print("Far tags data:")
-    print(far_tags_data)
+    # print("Far tags data:")
+    # print(far_tags_data)
     for tag in far_tags_data:
         # calculate the "niche score" for each tag
         # farther tags will have a higher niche score
@@ -192,7 +193,7 @@ def process_wildcard_prompt(prompt : str) -> str:
     new_prompt = ""
     # split_tags = re.split(r',|{|}|\||]\n', prompt)
     split_tags = re.split(r'(,|[\{\}\|]|\d\$\$)', prompt)
-    print(split_tags)
+    # print(split_tags)
     for tag_segment in split_tags:
         if tag_segment == None or tag_segment == " " or tag_segment == "" or tag_segment == ",":  # Skip empty segments
             continue
@@ -200,12 +201,12 @@ def process_wildcard_prompt(prompt : str) -> str:
             new_prompt += tag_segment
             continue
         stripped_tag = tag_segment.strip()
-        print(f"stripped_tag: {stripped_tag} | tag_segment: {tag_segment}")
+        # print(f"stripped_tag: {stripped_tag} | tag_segment: {tag_segment}")
         # just check the first 4 characters of the tag to see if it's a bangtag or a varietytag (the modifiers are alwyas at the start)
         if "?" in tag_segment[:4] or "!" in tag_segment[:4]:
             # if there is a ":" in the tag and the last character is a number, then it's a tag with a number of tags
             if ":" in tag_segment and tag_segment.strip()[-1].isdigit():
-                print("tag has a number of tags specified")
+                # print("tag has a number of tags specified")
                 # grab the position of the last ":" NOT THE FIRST, since the tag can have multiple colons (eg. tags like :P or :) )
                 last_colon = stripped_tag.rfind(":")
                 num_tags = stripped_tag[last_colon+1:]
@@ -218,7 +219,7 @@ def process_wildcard_prompt(prompt : str) -> str:
             varietyTag = ""
 
             if re.match(r"r?[!-?&]+(.*)", stripped_tag):
-                print(f"Tag {stripped_tag} contains modifier tags")
+                # print(f"Tag {stripped_tag} contains modifier tags")
                 only_tag = re.findall(r"r?[!-?&]+(.*)", stripped_tag)[0]
                 modifiers = re.findall(r"(r?[!-?&]+).*", stripped_tag)[0]
 

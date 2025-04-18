@@ -121,38 +121,38 @@ def recursivePromptExpand(prompt : str, givenPrefix = None):
         newPrompt += " | "
     newPrompt = newPrompt[:-2]
     return newPrompt
-ft.forbiddenTags += ["hetero","vagin","pussy","breast","deflo","animal","necro","torture","severing","pee","scat","futa","blood","injury","mutil","loli","shota"]
+ft.forbiddenTags += ["hetero","vagin","pussy","breast","deflo","animal","necro","torture","severing","pee","scat","futa","blood","injury","mutil","loli","shota","monst","tentacl","species"]
 
 test = process_wildcard_prompt("")
 with open ("test.txt", "w", encoding="utf-8") as f:
     f.write(test)
     f.close()
 
-pattern = r"{(\d\$\$[^{}]*)}"
-prefixPattern= r"([!\?\-&][!\?\-&]?[!\?\-&]?[!\?\-&]?){[^{]*{?[^{}]*}?[^}]*}}"
-finalString = ""
-print(re.findall(prefixPattern, testString))
-if re.findall(prefixPattern, testString):
-    prefix = re.search(prefixPattern, testString).group(1)
-    print(prefix)
-    splitString = re.split(pattern, testString)
-    print(splitString)
-    for subString in splitString:
-        if re.findall(r"\d*\$\$.*",subString):
-            finalString += "{"
-            singletags = subString.split("|")
-            for tag in singletags:
-                tag = tag.strip()
-                if "$$" in tag:
-                    finalString += tag.replace("$$",f"$$ {prefix}") + ", "
-                else:
-                    finalString += "| " + prefix + tag + ", "
-            finalString = finalString[:-2] + "}, "
-        else:
-            if "!" in subString or "?" in subString or "&" in subString or "-" in subString:
-                finalString += ",".join(subString.split(",")[:-1]) + ", "
-            else:
-                finalString += subString + ", "
+# pattern = r"{(\d\$\$[^{}]*)}"
+# prefixPattern= r"([!\?\-&][!\?\-&]?[!\?\-&]?[!\?\-&]?){[^{]*{?[^{}]*}?[^}]*}}"
+# finalString = ""
+# print(re.findall(prefixPattern, testString))
+# if re.findall(prefixPattern, testString):
+#     prefix = re.search(prefixPattern, testString).group(1)
+#     print(prefix)
+#     splitString = re.split(pattern, testString)
+#     print(splitString)
+#     for subString in splitString:
+#         if re.findall(r"\d*\$\$.*",subString):
+#             finalString += "{"
+#             singletags = subString.split("|")
+#             for tag in singletags:
+#                 tag = tag.strip()
+#                 if "$$" in tag:
+#                     finalString += tag.replace("$$",f"$$ {prefix}") + ", "
+#                 else:
+#                     finalString += "| " + prefix + tag + ", "
+#             finalString = finalString[:-2] + "}, "
+#         else:
+#             if "!" in subString or "?" in subString or "&" in subString or "-" in subString:
+#                 finalString += ",".join(subString.split(",")[:-1]) + ", "
+#             else:
+#                 finalString += subString + ", "
 
-print("finalString :")
-print(finalString)
+# print("finalString :")
+# print(finalString)
