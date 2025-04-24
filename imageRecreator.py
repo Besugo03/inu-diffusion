@@ -7,6 +7,7 @@ forbiddenWords_attireAndAccessories = []
 forbiddenWords_colors = ["black","blue","green","orange","pink","plaid","purple","red","striped","white","yellow","aqua","brown","amber","light","gold","grey","hazel","lavender","maroon","silver",]
 forbidden_accessories = []
 
+
 def loadForbiddenWords():
     with open("scraped_attire_accessories_etc.txt", "r") as file:
         for line in file:
@@ -17,6 +18,10 @@ def loadForbiddenWords():
     with open("accessories_only.txt", "r", encoding="utf-8") as file:
         for line in file:
             forbidden_accessories.append(line.strip().lower())
+
+# TODO to implement interrogation do deepbooru to add more tags to the image
+def enrichImageTags():
+    print("Enriching image tags...")
 
 def ensureForbiddenWordsLoaded():
     if len(forbiddenWords_attireAndAccessories) == 0 or len(forbiddenWords_bodyFeatues) == 0:
@@ -55,5 +60,5 @@ def filterForbiddenWords(original_prompt : str, forbiddenWordsLists : Literal["d
 # tests
 if __name__ == "__main__":
     # print(filterForbiddenWords("1girl, loli,", ["default","colors"])) # returns "1girl"
-    testString = "1girl, after vaginal, aftersex, anger vein, annoyed, black hair, black panties, blue eyes, blush, braid, breasts, censored, cum, cum in pussy, cumdrip, double v, fake phone screenshot, fake screenshot, female pubic hair, heart, heart censor, large breasts, low twin braids, nipples, nude, open clothes, open shirt, panties, panties around leg, pubic hair, pussy, shirt, sitting, solo, spread legs, twin braids, underwear, v, white shirt"
+    testString = ""
     print(filterForbiddenWords(testString, ["default","bodyFeatures"]))

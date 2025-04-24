@@ -222,7 +222,6 @@ def queue_txt2img(
         "vae": vae,
         "do_not_save_samples": False,
         "do_not_save_grid": False,
-        "infotext": "test infotext"
     }
     response = requests.post(url, headers=headers, json=data)
     print(response.json())
@@ -269,7 +268,6 @@ def test_txt2img(
         "vae": vae,
         "do_not_save_samples": False,
         "do_not_save_grid": False,
-        # "infotext": "test infotext",
         "save_images": True
     }
     response = requests.post(url, headers=headers, json=data)

@@ -11,3 +11,5 @@
 /tag_cache.json
 related_tags.json
 trimmed_related_tags.json
+api_test.py
+defaults.json
