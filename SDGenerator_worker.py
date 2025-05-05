@@ -67,7 +67,7 @@ class Txt2ImgJob:
 
 class UpscaleJob(Txt2ImgJob):
     # TODO add that, if you specify an upscaler, it uses that to send to extras and then do the inference
-    def __init__(self,
+    def __init__(self, 
         prompt,
         negative_prompt,
         styles = [],
@@ -88,7 +88,8 @@ class UpscaleJob(Txt2ImgJob):
         save_images = True,
         init_images = [],
         metadata = "",
-        infotext = "",):
+        infotext = "",
+        alwayson_scripts = {}):
         super().__init__(prompt, negative_prompt, styles, seed, batch_size, steps, cfg_scale, width, height, sampler, infotext)
         # super().__init__("", negative_prompt, styles, seed, batch_size, steps, cfg_scale, width, height, sampler)
         self.init_images = init_images
@@ -116,8 +117,19 @@ class ForgeCoupleJob(Txt2ImgJob):
         hr_scale = 2,
         denoising_strength = 0.4,
         hr_upscaler = "2xHFA2kAVCSRFormer_light",
-                 enable=True, compatibility=True, mode="Basic", couple_separator="NEXT", tile_direction="Horizontal",
-                 global_effect : Literal["First Line", "Last Line", "None"] = "None", global_effect_strength=0.8):
+        enable=True, 
+        compatibility=True, 
+        mode="Basic", 
+        couple_separator="NEXT", 
+        tile_direction="Horizontal",
+        global_effect : Literal["First Line", "Last Line", "None"] = "None", 
+        global_effect_strength=0.8,
+        save_images = True,
+        hr_second_pass_steps = 20,
+        hr_sampler_name = "Euler",
+        hr_additional_modules = [],
+        infotext = "",
+        alwayson_scripts = {}):
         # initialize the superclass and set the new attributes if they are not None
         super().__init__(prompt, negative_prompt, styles, seed, batch_size, steps, cfg_scale, width, height, sampler, enable_hr=enable_hr, hr_scale=hr_scale, hr_upscaler=hr_upscaler, denoising_strength=denoising_strength)
         self.enable = enable
@@ -148,13 +160,10 @@ class ForgeCoupleJob(Txt2ImgJob):
 
 
 # TODO add the other kinds of job (couple, img2img, etc)
-def send_job(job : Txt2ImgJob, jobID = None, taskIndex = None):
+def send_job(job : Txt2ImgJob, taskName = None):
     import requests
     endpoint = job.endpoint
     payload = job.to_dict()
-    payloadCopy = payload.copy()
-    payloadCopy["init_images"] = ["<hidden>"]
-    print(f"Sending request to {endpoint} with payload: {payloadCopy}")
     success = False
     while not success:
         try:
@@ -168,11 +177,23 @@ def send_job(job : Txt2ImgJob, jobID = None, taskIndex = None):
             pass
     import ImageLoadingSaving as ils
     # print the json keys of the response
-    print(response.json().keys())
-    print(len(response.json()["images"]))
+    # print(response.json())
+    # print(len(response.json()["images"]))
     import os
     os.makedirs("./images", exist_ok=True)
-    ils.save_image(ils.decode_image(response.json()["images"][0]), f"./images/{jobID}-{taskIndex}.png")
+
+    jobs = loadJobs()
+    ils.save_image(ils.decode_image(response.json()["images"][0]), f"./images/{taskName}.png")
+    # add the metadata to the image (info)
+    metadata = response.json()["info"]
+    # convert the metadata (string) to a dictionary
+    import json
+    metadata = json.loads(metadata)
+    metadata = {"parameters" : metadata}
+    # print(metadata)
+    # print(isinstance(metadata, dict))
+    ils.add_metadata_to_image(f"./images/{taskName}.png", metadata)
+    
     return response
 
 def loadJobs(lock = None):
@@ -210,16 +231,16 @@ def startGeneration():
             # find the first job that is not completed
             foundJob = None
             foundTask = None
-            foundTaskIndex = None
+            taskName = None
             # print(jobs)
             for job in jobs:
-                if jobs[job]["completed"] != True and foundJob is None:
+                if jobs[job]["status"] == "queued" and foundJob is None:
                     for task in jobs[job]["tasks"]:
                         foundJob = job
                         foundTask = task
-                        foundTaskIndex = jobs[job]["tasks"].index(task)
-                        if task["completed"] != True:
-                            job = task["job"]
+                        taskName = task['taskID']
+                        if task["status"] == "queued":
+                            job = task["task"]
                             break
                     break
             if foundTask is None: # Sentinel value to signal shutdown
@@ -228,24 +249,21 @@ def startGeneration():
             # print(f"found task : '{foundTask['job']['prompt']}' from job: {foundJob}")
 
             try:
+                print(f"found task : '{foundTask['task']}' from job: {foundJob}")
                 print(f"jobtype : {jobs[foundJob]['jobType']}")
                 if jobs[foundJob]["jobType"] == "txt2img":
-                    job = Txt2ImgJob(**foundTask["job"])
+                    job = Txt2ImgJob(**foundTask["task"])
                 elif jobs[foundJob]["jobType"] == "forgeCouple":
-                    job = ForgeCoupleJob(**foundTask["job"])
+                    job = ForgeCoupleJob(**foundTask["task"])
                 elif jobs[foundJob]["jobType"] == "upscale":
-                    job = UpscaleJob(**foundTask["job"])
+                    job = UpscaleJob(**foundTask["task"])
                 else:
                     print(f"Unknown job type: {foundJob['jobType']}. Skipping...")
                     return
-                
-                # TODO remove Simulate work
-                # import time
-                # time.sleep(1)
 
                 # Send the job to the server
-                response = send_job(job, jobID=foundJob, taskIndex=foundTaskIndex)
-                print("response : ",response.json())
+                response = send_job(job, taskName=taskName)
+                # print("response : ",response.json())
 
                 lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
                 with lock:
@@ -255,10 +273,10 @@ def startGeneration():
                         jobs = newjobs
                     # set the task to completed
                     if foundTask is not None:
-                        jobs[foundJob]["tasks"][jobs[foundJob]["tasks"].index(foundTask)]["completed"] = True
-                    # if all tasks are completed, set the job to completed
-                    if all(task["completed"] == True for task in jobs[foundJob]["tasks"]):
-                        jobs[foundJob]["completed"] = True
+                        jobs[foundJob]["tasks"][jobs[foundJob]["tasks"].index(foundTask)]["status"] = "completed"
+                    # if all tasks are completed or None set the job to completed
+                    if all(task["status"] == "completed" or task["status"] == None for task in jobs[foundJob]["tasks"]):
+                        jobs[foundJob]["status"] = "completed"
                     # save the jobs to the file
                     with open("jobs.json", "w", encoding="utf-8") as f:
                         json.dump(jobs, f, indent=4)

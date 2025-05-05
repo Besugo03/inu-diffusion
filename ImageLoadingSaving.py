@@ -42,3 +42,18 @@ def encode_file_to_base64(path):
     import base64
     with open(path, 'rb') as file:
         return base64.b64encode(file.read()).decode('utf-8')
+    
+def add_metadata_to_image(imagepath : str, metadata : dict):
+    """
+    Add metadata to a PIL Image object.
+    :param image: PIL Image object
+    :param metadata: metadata to add
+    """
+    from PIL import Image
+    from PIL import PngImagePlugin
+    img = Image.open(imagepath)
+    meta = PngImagePlugin.PngInfo()
+    for key, value in metadata.items():
+        meta.add_text(key, str(value))
+    img.save(imagepath, pnginfo=meta)
+

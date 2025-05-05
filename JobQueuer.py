@@ -24,8 +24,8 @@ class JobGenerator:
     **numJobs**: number of jobs to generate for each prompt.
     """
     from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, UpscaleJob
-    def __init__(self, job : Txt2ImgJob|ForgeCoupleJob|UpscaleJob, prompts: list, resolutionList: list, numJobs : int):
-        self.job = job
+    def __init__(self, jobType : Txt2ImgJob|ForgeCoupleJob|UpscaleJob, prompts: list, resolutionList: list, numJobs : int):
+        self.jobType = jobType
         self.prompts = prompts
         self.resolutionList = resolutionList
         self.numJobs = numJobs
@@ -36,10 +36,10 @@ class JobGenerator:
         from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, UpscaleJob
         jobsList = []
         if self.prompts == [] or self.prompts == None:
-            self.prompts = [self.job.prompt]
+            self.prompts = [self.jobType.prompt]
         for prompt in self.prompts:
             for i in range(self.numJobs):
-                newJob = copy.deepcopy(self.job)
+                newJob = copy.deepcopy(self.jobType)
                 chosenRes = random.choice(self.resolutionList)
                 newJob.width = chosenRes[0]
                 newJob.height = chosenRes[1]
@@ -48,12 +48,13 @@ class JobGenerator:
         return jobsList
 
 # set the memory first to avoid slow inference
-testdatamemory = {"forge_inference_memory": 5000}
+testdatamemory = {"forge_inference_memory": 4500}
 success = False
 while not success:
     try :
         requests.post(f"http://{address}/sdapi/v1/options", json=testdatamemory)
         success = True
+        print("[INFO] Memory set successfully.")
     except Exception as e:
         print(f"Error setting memory: {str(e)}")
         # wait for 1 second before retrying
@@ -61,10 +62,40 @@ while not success:
         time.sleep(1)
         pass
 
+def getJobs():
+    import filelock
+    import json
+    import os
+
+    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+    with lock:
+        try:
+            with open("jobs.json", "r", encoding="utf-8") as f:
+                jobList = json.load(f)
+                # print(jobList)
+                f.close()
+        except FileNotFoundError:
+            print("No job file found. No jobs to load.")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"Error loading job file : {e}. Starting with empty list.")
+            return []
+        except IOError as e:
+            print(f"IOError: {str(e)}")
+            return []
+        except filelock.Timeout:
+            print(f"Could not acquire lock for file. Cannot load jobs.")
+            # Decide how to handle this - maybe exit or wait longer
+            return []
+
+    return jobList
+
 def saveJobs(jobs):
     import datetime
     import json
     import filelock
+    import os
+
     jobType = type(jobs[0])
     if jobType == JobGenerator.Txt2ImgJob:
         jobType = "txt2img"
@@ -72,8 +103,8 @@ def saveJobs(jobs):
         jobType = "forgeCouple"
     elif jobType == JobGenerator.UpscaleJob:
         jobType = "upscale"
-    jobEntry = {datetime.datetime.now().timestamp() : { "tasks" : [{ "job" : job.to_dict(), "completed" : False} for job in jobs], "completed" : False, "jobType" : jobType}}
-    # print(jobEntry)
+    currentTime = datetime.datetime.now().timestamp()
+    jobEntry = {currentTime : { "tasks" : [{ "taskID" : f"{currentTime}-{jobIdx}", "task" : jobs[jobIdx].to_dict(), "status" : "queued"} for jobIdx in range(len(jobs))], "status" : "queued", "jobType" : jobType}}
     lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
     with lock:
         try:
@@ -82,6 +113,12 @@ def saveJobs(jobs):
                 f.close()
         except FileNotFoundError:
             print("No job file found. Creating a new one...")
+            # make sure the jobs.json file exists
+            # if not, create it
+            if not os.path.exists("jobs.json"):
+                with open("jobs.json", "w") as f:
+                    f.write("{}")
+                    f.close()
             jobList = {}
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error loading job file : {e}. Starting with empty list.")

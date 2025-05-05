@@ -4,13 +4,14 @@ import subprocess
 from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, startGeneration
 import JobQueuer
 import defaultsHandler
+from imageMetadata import getImageMetadata
 
 app = Flask(__name__)
 
-@app.route('/txt2img', methods=['POST'])
+@app.route("/txt2img", methods=["POST"])
 def txt2img():
     data = request.get_json()
-    print(f"got txt2img job '{data['prompt']}'...")
+    print(f'got txt2img job {data["prompt"]}...')
 
     defaults = defaultsHandler.loadDefaultsFromFile("defaults.json")
     
@@ -38,13 +39,13 @@ def txt2img():
     else:
         resolutionList = [(width, height)]
 
-    generator = JobQueuer.JobGenerator(job=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
+    generator = JobQueuer.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
     generatedjobs = generator.makeJobs()
     JobQueuer.saveJobs(generatedjobs)
 
     return jsonify(data)
 
-@app.route('/txt2imgCouple', methods=['POST'])
+@app.route("/txt2imgCouple", methods=["POST"])
 def txt2imgCouple():
     data = request.get_json()
     defaults = defaultsHandler.loadDefaultsFromFile("defaults.json")
@@ -73,65 +74,401 @@ def txt2imgCouple():
     else:
         resolutionList = [(width, height)]
 
-    generator = JobQueuer.JobGenerator(job=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
+    generator = JobQueuer.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
     generatedjobs = generator.makeJobs()
     JobQueuer.saveJobs(generatedjobs)
 
     return jsonify(data)
 
-@app.route('/upscale', methods=['POST'])
-def img2img():
-    from SDGenerator_worker import UpscaleJob
+@app.route("/upscaleTask", methods=["POST"])
+def upscaleTask():
+    import copy
+    import json
+    from JobQueuer import getJobs
     import ImageLoadingSaving as ils
-    from imageMetadata import getImageMetadata
+    import filelock
+    import datetime
+    # given a job, it will create a new upscale job, upscaling all images of said job.
     data = request.get_json()
+    upscalesFrom = str
 
-    givenImageb64 = ils.encode_file_to_base64(data["init_images"][0])
+    jobs = getJobs()
 
-    image_metadata = getImageMetadata(data["init_images"][0])
-    print("metadata : ",image_metadata)
-    resolution = image_metadata[image_metadata.find("Size: ") + 6: image_metadata.find(", Model hash:")].split("x")
-    seed = image_metadata[image_metadata.find("Seed: ") + 6: image_metadata.find(", Size:")]
-    sampler = image_metadata[image_metadata.find("Sampler: ") + 9: image_metadata.find(", Schedule type:")]
-    prompt = image_metadata[0:image_metadata.find("Negative prompt:")]
-    negative_prompt = image_metadata[image_metadata.find("Negative prompt: ") + 17:image_metadata.find("Steps:")]
+    upscalesFrom = data["init_images"][0].split("-")[0]
+
+    originalJob = jobs[upscalesFrom]
+
+    # check first if an upscale job for this job already exists
+    if "upscalesTo" in originalJob:
+        if originalJob["upscalesTo"] != None:
+            print("Upscale job already exists for this job.")
+            previousUpscaleJob = originalJob["upscalesTo"]
+                    
+            foundImagesToUpscale = False
+            images = data["init_images"]
+            images = [image.split(".png")[0] for image in images] # remove .png
+            print(f"images to upscale: {images}")
+            for image in images:
+                upscaleImageTask = f"{image}-u"
+                for task in jobs[previousUpscaleJob]["tasks"]:
+                    if task["taskID"] == upscaleImageTask:
+                        print(f"setting task {task['taskID']} to queued (matches with {upscaleImageTask})")
+                        # verify the image still exists
+                        try:
+                            ils.encode_file_to_base64("./images/" + task["taskID"]+".png")
+                        except FileNotFoundError:
+                            print(f"File not found for task {task['taskID']}. Deleting task.")
+                            jobs[previousUpscaleJob]["tasks"].remove(task)
+                            continue
+                        foundImagesToUpscale = True
+                        task["status"] = "queued"
+            if foundImagesToUpscale:
+                jobs[previousUpscaleJob]["status"] = "queued"
+            
+            lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+            with lock:
+                try:
+                    with open("jobs.json", "w", encoding="utf-8") as f:
+                        json.dump(jobs, f, indent=4)
+                        f.close()
+                except FileNotFoundError:
+                    print("No job file found. No jobs to upscale.")
+                    return jsonify({"status": "No job file found. No jobs to upscale."})
+                except json.JSONDecodeError:
+                    print("Error decoding JSON. No jobs to upscale.")
+                    return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
+                except IOError as e:
+                    print(f"IOError: {str(e)}")
+                    return jsonify({"status": f"IOError: {str(e)}"})
+
+            return jsonify({"status": "Upscale job already exists for this job."})
+            # TODO implement job modifying
+
+    # create an upscale job from the original job
+    # it will contain all the images of the original job
+    # same parameters as the original job
+    # denoising strength as passed, or 0.4 if not passed
+    # upscale the image to 2x the original size or the size passed
+    # by default the new upscale job will contain ALL images from the original one, but only the ones that are specified in "init_images" will have "status" : "queued"
     
-    defaults = defaultsHandler.loadDefaultsFromFile("defaults.json")
+    originalTasks = jobs[upscalesFrom]["tasks"]
+    newTasks = []
+    for task in originalTasks:
+        newTask = copy.deepcopy(task)
+        if "init_images" in data:
+            if f'{task["taskID"]}.png' not in data["init_images"]:
+                print(f"task {task['taskID']} not in {data['init_images']}, skipping")
+                newTask["status"] = None
+            else:
+                newTask["status"] = "queued"
+        else:
+            newTask["status"] = "queued"
+        
+        
+        # newTask["init_images"] = [task["init_images"][0]]
+        try : 
+            givenImageb64 = ils.encode_file_to_base64("./images/" + newTask["taskID"]+".png")
+        except FileNotFoundError:
+            print(f"File not found for task {newTask['taskID']}. Deleting task.")
+            continue
+        image_metadata = getImageMetadata("./images/" + newTask["taskID"]+".png")
 
-    generationJob = UpscaleJob(
-        prompt = prompt,
-        negative_prompt = data.get("negative_prompt", negative_prompt),
-        styles = data.get("styles", []),
-        seed = data.get("seed", seed),
-        batch_size = 1 ,
-        cfg_scale = data.get("cfg_scale", 5),
-        steps = data.get("steps", 25),
-        width = int(resolution[0])*2,
-        height = int(resolution[1])*2,
-        sampler = data.get("sampler", sampler),
-        enable_hr = data.get("enable_hr", False),
-        hr_scale = data.get("hr_scale", 2),
-        hr_upscaler = data.get("hr_upscaler", "2xHFA2kAVCSRFormer_light"),
-        denoising_strength = data.get("denoising_strength", 0.4),
-        init_images = [givenImageb64],
-        metadata = image_metadata,
-        infotext= "test"
-    )
+        newTask["taskID"] = f'{newTask["taskID"]}-u'
+        newTask["task"]["width"] = newTask["task"]["width"] * 2
+        newTask["task"]["height"] = newTask["task"]["height"] * 2
+        newTask["task"]["prompt"] = image_metadata["prompt"]
+        newTask["task"]["negative_prompt"] = image_metadata["negative_prompt"]
+        newTask["task"]["seed"] = image_metadata["seed"]
+        newTask["task"]["sampler"] = image_metadata["sampler_name"]
+        newTask["task"]["init_images"] = [givenImageb64]
+        newTask["task"]['styles'] = []
+        
+        newTasks.append(newTask)
+    
+    currentTime = datetime.datetime.now().timestamp()
 
-    width = data.get("width", None)
-    height = data.get("height", None)
-    if width is None or height is None:
-        resolutionList = [(width, height)]
-    else:
-        resolutionList = [(width, height)]
+    jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
+    
+    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+    
+    import json
+    with lock:
+        try:
+            with open("jobs.json", "w", encoding="utf-8") as f:
+                jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
+                json.dump(jobs, f, indent=4)
+        except FileNotFoundError:
+            print("No job file found. No jobs to upscale.")
+            return jsonify({"status": "No job file found. No jobs to upscale."})
+        except json.JSONDecodeError:
+            print("Error decoding JSON. No jobs to upscale.")
+            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
+        except IOError as e:
+            print(f"IOError: {str(e)}")
+            return jsonify({"status": f"IOError: {str(e)}"})
+        
+    return jsonify({"status": "success", "jobID": currentTime, "upscalesFrom" : upscalesFrom})
 
-    generator = JobQueuer.JobGenerator(job=generationJob, prompts=[prompt], resolutionList=[(int(resolution[0])*2,int(resolution[1])*2)], numJobs=data["numJobs"])
-    generatedjobs = generator.makeJobs()
-    JobQueuer.saveJobs(generatedjobs)
+@app.route("/upscaleJob", methods=["POST"])
+def upscaleJob():
+    import copy
+    import json
+    from JobQueuer import getJobs
+    import ImageLoadingSaving as ils
+    import filelock
+    import datetime
+    # given a job, it will create a new upscale job, upscaling all images of said job.
+    data = request.get_json()
+    upscalesFrom = str
 
-    return jsonify(data)
+    jobs = getJobs()
 
-@app.route('/saveDefaults', methods=['POST'])
+    # TODO check which images have not been deleted in the job list
+        
+    upscalesFrom = data["job"]
+
+    originalJob = jobs[upscalesFrom]
+
+    # check first if an upscale job for this job already exists
+    if "upscalesTo" in originalJob:
+        if originalJob["upscalesTo"] != None:
+            print("Upscale job already exists for this job.")
+            previousUpscaleJob = originalJob["upscalesTo"]
+            # if it's a job-wide upscale, upscale the whole job, skipping the images that are already upscaled
+            foundJobsToUpscale = False
+            for task in jobs[previousUpscaleJob]["tasks"]:
+                if task["status"] == "completed":
+                    continue
+                else:
+                    # verify the image still exists
+                    try:
+                        ils.encode_file_to_base64("./images/" + task["taskID"]+".png")
+                    except FileNotFoundError:
+                        print(f"File not found for task {task['taskID']}. Deleting task.")
+                        jobs[previousUpscaleJob]["tasks"].remove(task)
+                        continue
+                    foundJobsToUpscale = True
+                    task["status"] = "queued"
+            if foundJobsToUpscale == False:
+                jobs[previousUpscaleJob]["status"] = "queued"
+            
+            lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+            with lock:
+                try:
+                    with open("jobs.json", "w", encoding="utf-8") as f:
+                        json.dump(jobs, f, indent=4)
+                        f.close()
+                except FileNotFoundError:
+                    print("No job file found. No jobs to upscale.")
+                    return jsonify({"status": "No job file found. No jobs to upscale."})
+                except json.JSONDecodeError:
+                    print("Error decoding JSON. No jobs to upscale.")
+                    return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
+                except IOError as e:
+                    print(f"IOError: {str(e)}")
+                    return jsonify({"status": f"IOError: {str(e)}"})
+
+            return jsonify({"status": "Upscale job already exists for this job."})
+            # TODO implement job modifying
+
+    # create an upscale job from the original job
+    # it will contain all the images of the original job
+    # same parameters as the original job
+    # denoising strength as passed, or 0.4 if not passed
+    # upscale the image to 2x the original size or the size passed
+    # by default the new upscale job will contain ALL images from the original one, but only the ones that are specified in "init_images" will have "status" : "queued"
+    originalTasks = jobs[upscalesFrom]["tasks"]
+    newTasks = []
+    for task in originalTasks:
+        newTask = copy.deepcopy(task)
+        if "init_images" in data:
+            if f'{task["taskID"]}.png' not in data["init_images"]:
+                print(f"task {task['taskID']} not in {data['init_images']}, skipping")
+                newTask["status"] = None
+            else:
+                newTask["status"] = "queued"
+        else:
+            newTask["status"] = "queued"
+        
+        
+        # newTask["init_images"] = [task["init_images"][0]]
+        try : 
+            givenImageb64 = ils.encode_file_to_base64("./images/" + newTask["taskID"]+".png")
+        except FileNotFoundError:
+            print(f"File not found for task {newTask['taskID']}. Deleting task.")
+            continue
+        image_metadata = getImageMetadata("./images/" + newTask["taskID"]+".png")
+
+        newTask["taskID"] = f'{newTask["taskID"]}-u'
+        newTask["task"]["width"] = newTask["task"]["width"] * 2
+        newTask["task"]["height"] = newTask["task"]["height"] * 2
+        newTask["task"]["prompt"] = image_metadata["prompt"]
+        newTask["task"]["negative_prompt"] = image_metadata["negative_prompt"]
+        newTask["task"]["seed"] = image_metadata["seed"]
+        newTask["task"]["sampler"] = image_metadata["sampler_name"]
+        newTask["task"]["init_images"] = [givenImageb64]
+        newTask["task"]['styles'] = []
+        
+        newTasks.append(newTask)
+    
+    currentTime = datetime.datetime.now().timestamp()
+
+    jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
+    
+    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+    
+    import json
+    with lock:
+        try:
+            with open("jobs.json", "w", encoding="utf-8") as f:
+                jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
+                json.dump(jobs, f, indent=4)
+        except FileNotFoundError:
+            print("No job file found. No jobs to upscale.")
+            return jsonify({"status": "No job file found. No jobs to upscale."})
+        except json.JSONDecodeError:
+            print("Error decoding JSON. No jobs to upscale.")
+            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
+        except IOError as e:
+            print(f"IOError: {str(e)}")
+            return jsonify({"status": f"IOError: {str(e)}"})
+        
+    return jsonify({"status": "success", "jobID": currentTime, "upscalesFrom" : upscalesFrom})
+
+# route to upscale all completed jobs that :
+# - are completed
+# - are txt2img jobs
+# - are not upscaled already
+# Once a job is upscaled, it will be deleted from the queue (jobs.json)
+@app.route("/upscaleAllJobs", methods=["POST"])
+def upscaleAllJobs():
+    import copy
+    import json
+    from JobQueuer import getJobs
+    import ImageLoadingSaving as ils
+    import filelock
+    import datetime
+    
+    upscalesFrom = str
+
+    jobs = getJobs()
+
+    jobsToAdd = {}
+    # TODO add removal of jobs with no tasks in them. maybe.
+
+    for job in jobs:
+        print(f"checking job {job}... (jobtype {jobs[job]['jobType']})")
+        # check if the job is completed
+        if jobs[job]["status"] != "completed":
+            print(f"job {job} is not completed. skipping...")
+            continue
+        # check if the job is a txt2img job
+        if not (jobs[job]["jobType"] == "txt2img" or jobs[job]["jobType"] == "forgeCouple") :
+            print(f"job {job} is not a txt2img or couple job. skipping...")
+            continue
+
+        upscalesFrom = job
+
+        # check first if an upscale job for this job already exists
+        if "upscalesTo" in jobs[job]:
+            if jobs[job]["upscalesTo"] != None:
+                print("Upscale job already exists for this job.")
+                previousUpscaleJob = jobs[job]["upscalesTo"]
+                print(f"previous upscale job: {previousUpscaleJob}")
+                # if it's a job-wide upscale, upscale the whole job, skipping the images that are already upscaled
+                foundTasksToUpscale = False
+                tasksToRemove = []
+                for task in jobs[previousUpscaleJob]["tasks"]:
+                    # check if the task is already completed
+                    if task["status"] == "completed":
+                        print(f"task {task['taskID']} is already completed. skipping...")
+                        continue
+                    else:
+                        # verify the image still exists
+                        try:
+                            ils.encode_file_to_base64("./images/" + task["taskID"].split("-u")[0]+".png")
+                            print(f"task {task['taskID']} is not completed. setting to queued...")
+                            foundTasksToUpscale = True
+                        except FileNotFoundError:
+                            print(f"File not found for task {task['taskID']}. Deleting task.")
+                            tasksToRemove.append(task)
+                            continue
+                        task["status"] = "queued"
+                if foundTasksToUpscale == True:
+                    jobs[previousUpscaleJob]["status"] = "queued"
+
+                # remove the tasks that were deleted
+                for task in tasksToRemove:
+                    jobs[previousUpscaleJob]["tasks"].remove(task)
+
+        # create an upscale job from the original job
+        # it will contain all the images of the original job
+        # same parameters as the original job
+        # denoising strength as passed, or 0.4 if not passed
+        # upscale the image to 2x the original size or the size passed
+        # by default the new upscale job will contain ALL images from the original one, but only the ones that are specified in "init_images" will have "status" : "queued"
+        else : 
+            print(f"creating upscale job for {job}...")
+            originalTasks = jobs[upscalesFrom]["tasks"]
+            newTasks = []
+            for task in originalTasks:
+                newTask = copy.deepcopy(task)
+                newTask["status"] = "queued"
+                
+                # newTask["init_images"] = [task["init_images"][0]]
+                try : 
+                    givenImageb64 = ils.encode_file_to_base64("./images/" + newTask["taskID"]+".png")
+                except FileNotFoundError:
+                    print(f"File not found for task {newTask['taskID']}. Deleting task.")
+                    # TODO remove the task from the job
+                    continue
+                image_metadata = getImageMetadata("./images/" + newTask["taskID"]+".png")
+
+                newTask["taskID"] = f'{newTask["taskID"]}-u'
+                newTask["task"]["width"] = newTask["task"]["width"] * 2
+                newTask["task"]["height"] = newTask["task"]["height"] * 2
+                newTask["task"]["prompt"] = image_metadata["prompt"]
+                newTask["task"]["negative_prompt"] = image_metadata["negative_prompt"]
+                newTask["task"]["seed"] = image_metadata["seed"]
+                newTask["task"]["sampler"] = image_metadata["sampler_name"]
+                newTask["task"]["init_images"] = [givenImageb64]
+                newTask["task"]['styles'] = []
+                
+                newTasks.append(newTask)
+            
+            if len(newTasks) == 0:
+                print(f"No tasks to upscale for job {job}.")
+                continue
+
+            currentTime = datetime.datetime.now().timestamp()
+            print(f"current time: {currentTime}")
+
+            jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
+            
+            jobsToAdd[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
+    
+    for job in jobsToAdd:
+        jobs[job] = jobsToAdd[job]
+
+    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+    with lock:
+        try:
+            with open("jobs.json", "w", encoding="utf-8") as f:
+                json.dump(jobs, f, indent=4)
+                f.close()
+                print("saved jobs.json")
+        except FileNotFoundError:
+            print("No job file found. No jobs to upscale.")
+            return jsonify({"status": "No job file found. No jobs to upscale."})
+        except json.JSONDecodeError:
+            print("Error decoding JSON. No jobs to upscale.")
+            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
+        except IOError as e:
+            print(f"IOError: {str(e)}")
+            return jsonify({"status": f"IOError: {str(e)}"})
+    return jsonify({"status": "success"})
+
+@app.route("/saveDefaults", methods=["POST"])
 def saveDefaults():
     data = request.get_json()
     defaultsHandler.saveDefaultsToFile(data, "defaults.json")
