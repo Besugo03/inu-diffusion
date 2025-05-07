@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import subprocess
 
 from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, startGeneration
-import JobQueuer
+import JobManager
 import defaultsHandler
 from imageMetadata import getImageMetadata
 
@@ -39,9 +39,9 @@ def txt2img():
     else:
         resolutionList = [(width, height)]
 
-    generator = JobQueuer.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
-    generatedjobs = generator.makeJobs()
-    JobQueuer.saveJobs(generatedjobs)
+    generator = JobManager.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
+    generatedTasks = generator.makeTasks()
+    JobManager.tasksToJob(generatedTasks)
 
     return jsonify(data)
 
@@ -74,26 +74,29 @@ def txt2imgCouple():
     else:
         resolutionList = [(width, height)]
 
-    generator = JobQueuer.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
-    generatedjobs = generator.makeJobs()
-    JobQueuer.saveJobs(generatedjobs)
+    generator = JobManager.JobGenerator(jobType=generationJob, prompts=[data["prompt"]], resolutionList=resolutionList, numJobs=data["numJobs"])
+    generatedjobs = generator.makeTasks()
+    JobManager.tasksToJob(generatedjobs)
 
     return jsonify(data)
 
 @app.route("/upscaleTask", methods=["POST"])
 def upscaleTask():
+    """
+    Upscales one or multiple Tasks (images) from a job.
+    """
     import copy
     import json
-    from JobQueuer import getJobs
+    from JobManager import getJobs
     import ImageLoadingSaving as ils
     import filelock
     import datetime
     # given a job, it will create a new upscale job, upscaling all images of said job.
     data = request.get_json()
-    upscalesFrom = str
 
     jobs = getJobs()
 
+    upscalesFrom = str
     upscalesFrom = data["init_images"][0].split("-")[0]
 
     originalJob = jobs[upscalesFrom]
@@ -126,20 +129,7 @@ def upscaleTask():
                 jobs[previousUpscaleJob]["status"] = "queued"
             
             lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
-            with lock:
-                try:
-                    with open("jobs.json", "w", encoding="utf-8") as f:
-                        json.dump(jobs, f, indent=4)
-                        f.close()
-                except FileNotFoundError:
-                    print("No job file found. No jobs to upscale.")
-                    return jsonify({"status": "No job file found. No jobs to upscale."})
-                except json.JSONDecodeError:
-                    print("Error decoding JSON. No jobs to upscale.")
-                    return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
-                except IOError as e:
-                    print(f"IOError: {str(e)}")
-                    return jsonify({"status": f"IOError: {str(e)}"})
+            JobManager.updateJobs(jobs)
 
             return jsonify({"status": "Upscale job already exists for this job."})
             # TODO implement job modifying
@@ -182,6 +172,9 @@ def upscaleTask():
         newTask["task"]["sampler"] = image_metadata["sampler_name"]
         newTask["task"]["init_images"] = [givenImageb64]
         newTask["task"]['styles'] = []
+        if data.get("denoising_strength", None) != None:
+            print(f"setting denoising strength to {data['denoising_strength']}")
+            newTask["task"]["denoising_strength"] = data["denoising_strength"]
         
         newTasks.append(newTask)
     
@@ -189,23 +182,7 @@ def upscaleTask():
 
     jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
     
-    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
-    
-    import json
-    with lock:
-        try:
-            with open("jobs.json", "w", encoding="utf-8") as f:
-                jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
-                json.dump(jobs, f, indent=4)
-        except FileNotFoundError:
-            print("No job file found. No jobs to upscale.")
-            return jsonify({"status": "No job file found. No jobs to upscale."})
-        except json.JSONDecodeError:
-            print("Error decoding JSON. No jobs to upscale.")
-            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
-        except IOError as e:
-            print(f"IOError: {str(e)}")
-            return jsonify({"status": f"IOError: {str(e)}"})
+    JobManager.updateJobs(jobs)
         
     return jsonify({"status": "success", "jobID": currentTime, "upscalesFrom" : upscalesFrom})
 
@@ -213,7 +190,7 @@ def upscaleTask():
 def upscaleJob():
     import copy
     import json
-    from JobQueuer import getJobs
+    from JobManager import getJobs
     import ImageLoadingSaving as ils
     import filelock
     import datetime
@@ -252,24 +229,9 @@ def upscaleJob():
             if foundJobsToUpscale == False:
                 jobs[previousUpscaleJob]["status"] = "queued"
             
-            lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
-            with lock:
-                try:
-                    with open("jobs.json", "w", encoding="utf-8") as f:
-                        json.dump(jobs, f, indent=4)
-                        f.close()
-                except FileNotFoundError:
-                    print("No job file found. No jobs to upscale.")
-                    return jsonify({"status": "No job file found. No jobs to upscale."})
-                except json.JSONDecodeError:
-                    print("Error decoding JSON. No jobs to upscale.")
-                    return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
-                except IOError as e:
-                    print(f"IOError: {str(e)}")
-                    return jsonify({"status": f"IOError: {str(e)}"})
+            JobManager.updateJobs(jobs)
 
             return jsonify({"status": "Upscale job already exists for this job."})
-            # TODO implement job modifying
 
     # create an upscale job from the original job
     # it will contain all the images of the original job
@@ -308,6 +270,9 @@ def upscaleJob():
         newTask["task"]["sampler"] = image_metadata["sampler_name"]
         newTask["task"]["init_images"] = [givenImageb64]
         newTask["task"]['styles'] = []
+        if data.get("denoising_strength", None) != None:
+            print(f"setting denoising strength to {data['denoising_strength']}")
+            newTask["task"]["denoising_strength"] = data["denoising_strength"]
         
         newTasks.append(newTask)
     
@@ -315,23 +280,7 @@ def upscaleJob():
 
     jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
     
-    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
-    
-    import json
-    with lock:
-        try:
-            with open("jobs.json", "w", encoding="utf-8") as f:
-                jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
-                json.dump(jobs, f, indent=4)
-        except FileNotFoundError:
-            print("No job file found. No jobs to upscale.")
-            return jsonify({"status": "No job file found. No jobs to upscale."})
-        except json.JSONDecodeError:
-            print("Error decoding JSON. No jobs to upscale.")
-            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
-        except IOError as e:
-            print(f"IOError: {str(e)}")
-            return jsonify({"status": f"IOError: {str(e)}"})
+    JobManager.updateJobs(jobs)
         
     return jsonify({"status": "success", "jobID": currentTime, "upscalesFrom" : upscalesFrom})
 
@@ -344,12 +293,18 @@ def upscaleJob():
 def upscaleAllJobs():
     import copy
     import json
-    from JobQueuer import getJobs
+    from JobManager import getJobs
     import ImageLoadingSaving as ils
     import filelock
     import datetime
     
     upscalesFrom = str
+
+    try :
+        data = request.get_json()
+    except Exception as e:
+        print(f"Error getting json data : {e}")
+        data = {}
 
     jobs = getJobs()
 
@@ -433,6 +388,9 @@ def upscaleAllJobs():
                 newTask["task"]["sampler"] = image_metadata["sampler_name"]
                 newTask["task"]["init_images"] = [givenImageb64]
                 newTask["task"]['styles'] = []
+                if data.get("denoising_strength", None) != None:
+                    print(f"setting denoising strength to {data['denoising_strength']}")
+                    newTask["task"]["denoising_strength"] = data["denoising_strength"]
                 
                 newTasks.append(newTask)
             
@@ -450,22 +408,7 @@ def upscaleAllJobs():
     for job in jobsToAdd:
         jobs[job] = jobsToAdd[job]
 
-    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
-    with lock:
-        try:
-            with open("jobs.json", "w", encoding="utf-8") as f:
-                json.dump(jobs, f, indent=4)
-                f.close()
-                print("saved jobs.json")
-        except FileNotFoundError:
-            print("No job file found. No jobs to upscale.")
-            return jsonify({"status": "No job file found. No jobs to upscale."})
-        except json.JSONDecodeError:
-            print("Error decoding JSON. No jobs to upscale.")
-            return jsonify({"status": "Error decoding JSON. No jobs to upscale."})
-        except IOError as e:
-            print(f"IOError: {str(e)}")
-            return jsonify({"status": f"IOError: {str(e)}"})
+    JobManager.updateJobs(jobs)
     return jsonify({"status": "success"})
 
 @app.route("/saveDefaults", methods=["POST"])
@@ -474,6 +417,10 @@ def saveDefaults():
     defaultsHandler.saveDefaultsToFile(data, "defaults.json")
     return jsonify({"status": "success"})
 
+@app.route("/defaults", methods=["GET"])
+def getDefaults():
+    defaults = defaultsHandler.loadDefaultsFromFile("defaults.json")
+    return jsonify(defaults)
 
 if __name__ == "__main__":
     import tag_filterer as tf

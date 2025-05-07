@@ -80,3 +80,13 @@ def getLoraName(file_path):
         else:
             # if metadata does not have the key "ss_output_name", it will return the name of the file (without the extension)
             return os.path.basename(file_path)[:-12]
+
+if __name__ == "__main__":
+    # print(getJsonFiles(loraDir))
+
+    import requests
+    # print(requests.get("http://127.0.0.1:7860/sdapi/v1/sd-models").json())
+    loras = requests.get("http://127.0.0.1:7860/sdapi/v1/loras").json()
+
+    for lora in loras:
+        print(lora['name'])

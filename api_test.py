@@ -15,8 +15,12 @@ address = "http://127.0.0.1:5000"
 # print(response)
 
 # =============== GLOBAL UPSCALE TEST ===============
-response = requests.post(f"{address}/upscaleAllJobs")
-print(response)
+# data = {
+#     "denoising_strength" : 0.7
+# }
+
+# response = requests.post(f"{address}/upscaleAllJobs", json=data)
+# print(response)
 
 # =============== JOB UPSCALE TEST ===============
 # data = {
@@ -29,6 +33,9 @@ print(response)
 # data = {
 #     "init_images" : ["1746398687.779045-2.png"]
 # }
+
+# response = requests.post(f"{address}/upscaleTask", json=data)
+# print(response)
 
 # =============== COUPLE JOB ===============
 # data = {

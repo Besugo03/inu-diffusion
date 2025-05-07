@@ -167,7 +167,9 @@ def send_job(job : Txt2ImgJob, taskName = None):
     success = False
     while not success:
         try:
+            print(f"sending request to server on endpoint {endpoint}... ")
             response = requests.post(endpoint, json=payload)
+            print("test")
             success = True
         except Exception as e:
             print(f"Error sending request: {str(e)}")
@@ -262,6 +264,7 @@ def startGeneration():
                     return
 
                 # Send the job to the server
+                print(f"sending job: {job.prompt.strip()[0:50]}... to server")
                 response = send_job(job, taskName=taskName)
                 # print("response : ",response.json())
 

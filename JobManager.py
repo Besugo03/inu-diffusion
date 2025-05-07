@@ -30,7 +30,7 @@ class JobGenerator:
         self.resolutionList = resolutionList
         self.numJobs = numJobs
     
-    def makeJobs(self) -> list[Txt2ImgJob|ForgeCoupleJob|UpscaleJob]:
+    def makeTasks(self) -> list[Txt2ImgJob|ForgeCoupleJob|UpscaleJob]:
         import random
         import copy
         from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, UpscaleJob
@@ -90,13 +90,38 @@ def getJobs():
 
     return jobList
 
-def saveJobs(jobs):
+def updateJobs(jobs):
+    import filelock
+    import json
+    import os
+
+    lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
+    with lock:
+        try:
+            with open("jobs.json", "w", encoding="utf-8") as f:
+                json.dump(jobs, f, indent=4)
+                f.close()
+        except FileNotFoundError:
+            print("No job file found. No jobs to update.")
+            return []
+        except json.JSONDecodeError as e:
+            print(f"Error loading job file : {e}. Starting with empty list.")
+            return []
+        except IOError as e:
+            print(f"IOError: {str(e)}")
+            return []
+        except filelock.Timeout:
+            print(f"Could not acquire lock for file. Cannot update jobs.")
+            # Decide how to handle this - maybe exit or wait longer
+            return []
+
+def tasksToJob(tasks):
     import datetime
     import json
     import filelock
     import os
 
-    jobType = type(jobs[0])
+    jobType = type(tasks[0])
     if jobType == JobGenerator.Txt2ImgJob:
         jobType = "txt2img"
     elif jobType == JobGenerator.ForgeCoupleJob:
@@ -104,7 +129,7 @@ def saveJobs(jobs):
     elif jobType == JobGenerator.UpscaleJob:
         jobType = "upscale"
     currentTime = datetime.datetime.now().timestamp()
-    jobEntry = {currentTime : { "tasks" : [{ "taskID" : f"{currentTime}-{jobIdx}", "task" : jobs[jobIdx].to_dict(), "status" : "queued"} for jobIdx in range(len(jobs))], "status" : "queued", "jobType" : jobType}}
+    jobEntry = {currentTime : { "tasks" : [{ "taskID" : f"{currentTime}-{jobIdx}", "task" : tasks[jobIdx].to_dict(), "status" : "queued"} for jobIdx in range(len(tasks))], "status" : "queued", "jobType" : jobType}}
     lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
     with lock:
         try:
