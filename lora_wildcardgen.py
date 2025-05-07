@@ -88,5 +88,10 @@ if __name__ == "__main__":
     # print(requests.get("http://127.0.0.1:7860/sdapi/v1/sd-models").json())
     loras = requests.get("http://127.0.0.1:7860/sdapi/v1/loras").json()
 
+    # print(loras)
+
+    dirset = set()
     for lora in loras:
-        print(lora['name'])
+        newelem = "/".join(lora['path'].split("\\")[:-1])
+        dirset.add(newelem)
+    print(dirset)
