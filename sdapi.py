@@ -128,7 +128,6 @@ def upscaleTask():
             if foundImagesToUpscale:
                 jobs[previousUpscaleJob]["status"] = "queued"
             
-            lock = filelock.FileLock("jobs.json.lock", timeout=10) # 10 seconds timeout for lock
             JobManager.updateJobs(jobs)
 
             return jsonify({"status": "Upscale job already exists for this job."})
@@ -181,6 +180,13 @@ def upscaleTask():
     currentTime = datetime.datetime.now().timestamp()
 
     jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
+
+    if len(newTasks) == 0:
+        print(f"No tasks to upscale for job {upscalesFrom}.")
+        return jsonify({"status": "No tasks to upscale for job."})
+    
+    jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
+
     
     JobManager.updateJobs(jobs)
         
@@ -215,14 +221,16 @@ def upscaleJob():
             foundJobsToUpscale = False
             for task in jobs[previousUpscaleJob]["tasks"]:
                 if task["status"] == "completed":
+                    print(f"task {task['taskID']} is already completed. skipping...")
                     continue
                 else:
                     # verify the image still exists
                     try:
-                        ils.encode_file_to_base64("./images/" + task["taskID"]+".png")
+                        ils.encode_file_to_base64("./images/" + task["taskID"].split("-u")[0]+".png")
                     except FileNotFoundError:
-                        print(f"File not found for task {task['taskID']}. Deleting task.")
-                        jobs[previousUpscaleJob]["tasks"].remove(task)
+                        print(f"File ./images/{task['taskID'].split('-u')[0]}.png not found for task {task['taskID']}. Skipping...")
+                        # print(f"File not found for task {task['taskID']}. Deleting task.")
+                        # jobs[previousUpscaleJob]["tasks"].remove(task)
                         continue
                     foundJobsToUpscale = True
                     task["status"] = "queued"
@@ -279,6 +287,12 @@ def upscaleJob():
     currentTime = datetime.datetime.now().timestamp()
 
     jobs[upscalesFrom]["upscalesTo"] = str(currentTime)
+
+    if len(newTasks) == 0:
+        print(f"No tasks to upscale for job {upscalesFrom}.")
+        return jsonify({"status": "No tasks to upscale for job."})
+    
+    jobs[currentTime] = {"tasks" : newTasks, "status" : "queued", "jobType" : "upscale"}
     
     JobManager.updateJobs(jobs)
         

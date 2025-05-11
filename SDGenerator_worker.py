@@ -251,7 +251,7 @@ def startGeneration():
             # print(f"found task : '{foundTask['job']['prompt']}' from job: {foundJob}")
 
             try:
-                print(f"found task : '{foundTask['task']}' from job: {foundJob}")
+                print(f"found task : '{foundTask['taskID']}' from job: {foundJob}")
                 print(f"jobtype : {jobs[foundJob]['jobType']}")
                 if jobs[foundJob]["jobType"] == "txt2img":
                     job = Txt2ImgJob(**foundTask["task"])

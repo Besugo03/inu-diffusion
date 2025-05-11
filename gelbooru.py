@@ -153,10 +153,22 @@ def getTrendingCharacters(pages_to_fetch: int = 20, min_score: int = 100,
 
 if __name__ == "__main__":
     # Example usage with conservative threading
-    trending = getTrendingCharacters(
-        pages_to_fetch=25,
-        min_score=300,
-        post_threads=5,  # Keep below 10 to avoid rate limits
-        tag_threads=5    # Tags endpoint might be more sensitive
-    )
-    print(trending)
+    # trending = getTrendingCharacters(
+    #     pages_to_fetch=25,
+    #     min_score=300,
+    #     post_threads=5,  # Keep below 10 to avoid rate limits
+    #     tag_threads=5    # Tags endpoint might be more sensitive
+    # )
+    # print(trending)
+
+    
+    tags = getPostTags("")
+    tags = filterTagsCategory(tags, [0])
+    print(tags)
+    final = ""
+    for tag in tags :
+        final+= "\"" + tag + "\"" + ", "
+    print(final[:-2])
+    tags = ",".join(tags)
+    # tags = ir.filterForbiddenWords(tags, ["default", "accessories", "attireAndAccessories", "colors", "bodyFeatures"])
+    print(tags)

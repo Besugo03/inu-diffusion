@@ -55,13 +55,26 @@ def generateWildcard(chosenDir, generationMode: Literal["first", "allWithOR", "f
             if generationMode == "first":
                 wildcard += split_text[0] + " | "
             elif generationMode == "allWithOR":
+                wildcard += ", { "
+                gotWords = False
                 for text in split_text:
+                    gotWords = True
                     wildcard += text + " | "
+                if not gotWords:
+                    wildcard = wildcard + " }, "
+                else:
+                    wildcard = wildcard[:-3] + " }, "
             elif generationMode == "firstWithOr":
-                wildcard += split_text[0] + " | "
+                wildcard += split_text[0] + ", { "
+                gotWords = False
                 for text in split_text[1:]:
+                    gotWords = True
                     wildcard += text + " | "
-            # wildcard += activationText + " | "
+                if not gotWords:
+                    wildcard = wildcard + " }, "
+                else:
+                    wildcard = wildcard[:-3] + " }, "
+            wildcard +=  " | "
     wildcard = wildcard[:-3] + "}"
     return wildcard
 
@@ -84,14 +97,23 @@ def getLoraName(file_path):
 if __name__ == "__main__":
     # print(getJsonFiles(loraDir))
 
-    import requests
-    # print(requests.get("http://127.0.0.1:7860/sdapi/v1/sd-models").json())
-    loras = requests.get("http://127.0.0.1:7860/sdapi/v1/loras").json()
+    # import requests
+    # # print(requests.get("http://127.0.0.1:7860/sdapi/v1/sd-models").json())
+    # loras = requests.get("http://127.0.0.1:7860/sdapi/v1/loras").json()
+    # print(loras[2]['metadata'].keys())
+    # # tag : frequency
+    # tagsSet = loras[2]['metadata']['ss_tag_frequency']
+    # # print(loras[2]['metadata']['ss_datasets'])
+    # # sort the tags by frequency
+    # tagsSet = sorted(tagsSet.items(), key=lambda x: x[1], reverse=True)
+    # print(tagsSet)
 
-    # print(loras)
+    print(generateWildcard("Positions", "allWithOR", 0.7))
 
-    dirset = set()
-    for lora in loras:
-        newelem = "/".join(lora['path'].split("\\")[:-1])
-        dirset.add(newelem)
-    print(dirset)
+    # TODO A QUANTO PARE LE PARENTESI QUADRE FANNO SI CHE NON VENGA TROVATO. NON SO PERCHE.
+    
+    # dirset = set()
+    # for lora in loras:
+    #     newelem = "/".join(lora['path'].split("\\")[:-1])
+    #     dirset.add(newelem)
+    # print(dirset)

@@ -8,7 +8,8 @@ address = "http://127.0.0.1:5000"
 # data = {
 #     "prompt" : "",
 #     "negative_prompt" : "",
-#     "numJobs": 1,
+#     "cfg_scale" : 7,
+#     "numJobs": 10,
 # }
 
 # response = requests.post(f"{address}/txt2img", json=data)
@@ -16,7 +17,7 @@ address = "http://127.0.0.1:5000"
 
 # =============== GLOBAL UPSCALE TEST ===============
 # data = {
-#     "denoising_strength" : 0.7
+#     "denoising_strength" : 0.4
 # }
 
 # response = requests.post(f"{address}/upscaleAllJobs", json=data)
@@ -24,14 +25,14 @@ address = "http://127.0.0.1:5000"
 
 # =============== JOB UPSCALE TEST ===============
 # data = {
-#     "job" : "1746374772.588482"
+#     "job" : "1746640206.199103"
 # }
 # response = requests.post(f"{address}/upscaleJob", json = data)
 # print(response)
 
 # =============== IMAGE UPSCALE TEST ===============
 # data = {
-#     "init_images" : ["1746398687.779045-2.png"]
+#     "init_images" : ["1746640206.199103-1.png"]
 # }
 
 # response = requests.post(f"{address}/upscaleTask", json=data)

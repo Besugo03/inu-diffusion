@@ -13,3 +13,8 @@ related_tags.json
 trimmed_related_tags.json
 api_test.py
 defaults.json
+tag_classifier_sbert.h5
+tag_label_encoder_sbert.pkl
+trained_models/tag_classifier_fasttext.h5
+trained_models/tag_label_encoder.pkl
+crawl-300d-2M-subword.bin
