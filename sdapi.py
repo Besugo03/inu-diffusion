@@ -5,6 +5,7 @@ from SDGenerator_worker import Txt2ImgJob, ForgeCoupleJob, startGeneration
 import JobManager
 import defaultsHandler
 from imageMetadata import getImageMetadata
+import JobManager
 
 app = Flask(__name__)
 
@@ -435,6 +436,42 @@ def saveDefaults():
 def getDefaults():
     defaults = defaultsHandler.loadDefaultsFromFile("defaults.json")
     return jsonify(defaults)
+
+@app.route("/jobs", methods=["GET"])
+def getJobs():
+    """
+    Returns the jobs from the jobs.json file.
+    """
+    jobs = JobManager.getJobs()
+    return jobs
+
+@app.route("/jobInfo", methods=["POST"])
+def getJobInfo():
+    """
+    Returns the job info from the jobs.json file.
+    """
+    data = request.get_json()
+    jobID = data["jobID"]
+    jobs = JobManager.getJobs()
+    if jobID in jobs:
+        return jsonify(jobs[jobID])
+    else:
+        return jsonify({"status": "error", "message": "Job not found"})
+    
+@app.route("/deleteJob", methods=["POST"])
+def deleteJob():
+    """
+    Deletes a job from the jobs.json file.
+    """
+    data = request.get_json()
+    jobID = data["jobID"]
+    jobs = JobManager.getJobs()
+    if jobID in jobs:
+        del jobs[jobID]
+        JobManager.updateJobs(jobs)
+        return jsonify({"status": "completed"})
+    else:
+        return jsonify({"status": "error", "message": "Job not found"})
 
 if __name__ == "__main__":
     import tag_filterer as tf

@@ -53,3 +53,20 @@ Things the frontend should include :
     - Bar under each one to tell how well-tagged the image is
     - Recreate image, which obviously has a better effect with more well-tagged images
     - have a text input on top which automatically appends that stuff to the end of the prompt (to specify characters / environments / whatever wants to be substituted)
+
+
+Endpoints necessari : 
+T ottenere i jobs
+T per ogni job, ottenere le immagini, magari separatamente alcune di preview?
+x inviare nuovi jobs
+x annullare jobs specifici
+- mettere in pausa la generazione
+- riprendere la generazione
+- cancellare jobs
+- ottenere defaults (magari settandoli come correnti)
+- modificare defaults (magari settando i correnti come tali)
+- interrogate image rectreator
+- load different models
+- get available loras
+- generate lora wildcard
+T set GPU weights
