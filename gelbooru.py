@@ -4,6 +4,7 @@ import typing
 import dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
+import imageRecreator as ir
 
 base_url = "https://gelbooru.com/"
 
@@ -165,10 +166,6 @@ if __name__ == "__main__":
     tags = getPostTags("")
     tags = filterTagsCategory(tags, [0])
     print(tags)
-    final = ""
-    for tag in tags :
-        final+= "\"" + tag + "\"" + ", "
-    print(final[:-2])
     tags = ",".join(tags)
-    # tags = ir.filterForbiddenWords(tags, ["default", "accessories", "attireAndAccessories", "colors", "bodyFeatures"])
+    tags = ir.filterForbiddenWords(tags, ["default", "accessories", "attireAndAccessories", "colors", "bodyFeatures"])
     print(tags)

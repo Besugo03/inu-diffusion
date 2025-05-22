@@ -1,4 +1,6 @@
 from typing import Literal
+import signal
+import os
 
 address = "127.0.0.1:7860"
 # TODO move the generation classes somewhere else bc it doesnt make sense to have them here
@@ -158,6 +160,17 @@ class ForgeCoupleJob(Txt2ImgJob):
         }
         return data
 
+shutdown_signal_received = False
+WORKER_PID_FILE = "worker.pid" # Define globally
+STOP_FLAG_FILE = "stop_worker.flag" # Define globally
+
+def signal_handler(signum, frame):
+    global shutdown_signal_received
+    print(f"WORKER: Signal {signum} received. Initiating graceful shutdown...")
+    shutdown_signal_received = True
+    # Optionally create stop_worker.flag here too as a fallback
+    with open(STOP_FLAG_FILE, "w") as f:
+        f.write("stop")
 
 # TODO add the other kinds of job (couple, img2img, etc)
 def send_job(job : Txt2ImgJob, taskName = None):
@@ -246,13 +259,13 @@ def startGeneration():
                             break
                     break
             if foundTask is None: # Sentinel value to signal shutdown
-                print("found no jobs to process. Exiting...")
-                return
+                print("[WORKER] found no jobs to process. Exiting...")
+                return False
             # print(f"found task : '{foundTask['job']['prompt']}' from job: {foundJob}")
 
             try:
-                print(f"found task : '{foundTask['taskID']}' from job: {foundJob}")
-                print(f"jobtype : {jobs[foundJob]['jobType']}")
+                print(f"[WORKER] found task : '{foundTask['taskID']}' from job: {foundJob}")
+                print(f"[WORKER] jobtype : {jobs[foundJob]['jobType']}")
                 if jobs[foundJob]["jobType"] == "txt2img":
                     job = Txt2ImgJob(**foundTask["task"])
                 elif jobs[foundJob]["jobType"] == "forgeCouple":
@@ -260,11 +273,11 @@ def startGeneration():
                 elif jobs[foundJob]["jobType"] == "upscale":
                     job = UpscaleJob(**foundTask["task"])
                 else:
-                    print(f"Unknown job type: {foundJob['jobType']}. Skipping...")
-                    return
+                    print(f"[WORKER] Unknown job type: {foundJob['jobType']}. Skipping...")
+                    return True
 
                 # Send the job to the server
-                print(f"sending job: {job.prompt.strip()[0:50]}... to server")
+                print(f"[WORKER] sending job: {job.prompt.strip()[0:50]}... to server")
                 response = send_job(job, taskName=taskName)
                 # print("response : ",response.json())
 
@@ -272,7 +285,7 @@ def startGeneration():
                 with lock:
                     newjobs = loadJobs(lock)
                     if newjobs != jobs:
-                        print("jobs have changed while processing. Updating jobs...")
+                        print("[WORKER] jobs have changed while processing. Updating jobs...")
                         jobs = newjobs
                     # set the task to completed
                     if foundTask is not None:
@@ -289,8 +302,9 @@ def startGeneration():
                 raise e
                 #  print(e)
             finally:
-                print(f"finished job")
+                print(f"[WORKER] finished job")
                 # print(f"finished job {job}")
+                return True
                 
         except Exception as e:
             raise e
@@ -301,8 +315,54 @@ def startGeneration():
             #    except ValueError: # May happen if task_done called twice
             #        pass
 
-if __name__ == "__main__":
+def main_worker_loop_function():
     import time
-    while True:
-        startGeneration()
-        time.sleep(1)
+    global shutdown_signal_received
+    print(f"WORKER: Started with PID {os.getpid()}. Polling for jobs...")
+    while not shutdown_signal_received:
+        if os.path.exists(STOP_FLAG_FILE):
+            print("WORKER: Stop flag file detected. Shutting down...")
+            shutdown_signal_received = True # Ensure flag is set
+            break # Exit loop
+
+        # Your existing startGeneration() logic call
+        processed_job = startGeneration() # Modify startGeneration to return True if job processed, False if no job
+
+        if shutdown_signal_received: # Check after a potential blocking call
+            break
+
+        if not processed_job: # If no job was found/processed by startGeneration
+            # Sleep but make it interruptible and check flags often
+            for _ in range(10): # e.g. 1 second total if sleep is 0.1
+                if shutdown_signal_received or os.path.exists(STOP_FLAG_FILE):
+                    shutdown_signal_received = True
+                    break
+                time.sleep(0.1)
+        if shutdown_signal_received: # Final check in loop iteration
+             break
+    print("WORKER: Exiting main loop.")
+
+if __name__ == "__main__":
+    
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    try:
+        with open(WORKER_PID_FILE, "w") as f:
+            f.write(str(os.getpid()))
+    except IOError:
+        print(f"Could not write PID file {WORKER_PID_FILE}. Exiting...")
+        exit(1)
+
+    try:
+        main_worker_loop_function() # Your existing while True loop logic moved here
+    finally:
+        print("WORKER: Cleaning up PID and flag files...")
+        if os.path.exists(WORKER_PID_FILE):
+            try: os.remove(WORKER_PID_FILE)
+            except OSError as e: print(f"WORKER: Error removing PID file: {e}")
+        if os.path.exists(STOP_FLAG_FILE):
+            try: os.remove(STOP_FLAG_FILE)
+            except OSError as e: print(f"WORKER: Error removing stop flag file: {e}")
+        print("SDGenerator_worker shut down.")

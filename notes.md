@@ -1,6 +1,6 @@
 Functions for the app the api provides :
 
-- Image Recreator (from Gelbooru tag) 
+x Image Recreator (from Gelbooru tag) 
   - To implement danbooru for the same 
   - To implement DeepBooru interrogation to enrich image tags
     - Should have an option to either use local model or remotely hosted ones like on huggingface
@@ -60,13 +60,23 @@ T ottenere i jobs
 T per ogni job, ottenere le immagini, magari separatamente alcune di preview?
 x inviare nuovi jobs
 x annullare jobs specifici
-- mettere in pausa la generazione
-- riprendere la generazione
-- cancellare jobs
-- ottenere defaults (magari settandoli come correnti)
-- modificare defaults (magari settando i correnti come tali)
+x mettere in pausa la generazione
+x riprendere la generazione
+x cancellare jobs
+x ottenere defaults (magari settandoli come correnti)
+x modificare defaults (magari settando i correnti come tali)
 - interrogate image rectreator
-- load different models
-- get available loras
-- generate lora wildcard
+x load different models
+x get available loras
+/ generate lora wildcard
 T set GPU weights
+
+
+http://127.0.0.1:7860/sdapi/v1/options
+  "sd_model_checkpoint": "unholyDesireMixSinister_v40_1477760.safetensors",
+  "sd_vae": "sdxl_vae.safetensors",
+  "interrogate_deepbooru_score_threshold": 0.7,
+
+http://127.0.0.1:7860/sdapi/v1/sd-models
+http://127.0.0.1:7860/sdapi/v1/refresh-checkpoints
+http://127.0.0.1:7860/sdapi/v1/refresh-loras
