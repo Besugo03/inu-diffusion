@@ -33,7 +33,7 @@ def generateWildcard(chosenDir, generationMode: Literal["first", "allWithOR", "f
     wildcard = "{"
     # get all the files in the chosen directory
     for file in jsonFiles:
-        if  "\\".join(jsonFiles[file].split("\\")[:-1]) == chosenDir:
+         if  "\\".join(jsonFiles[file].split("\\")[:-1]) == chosenDir:
             print(file)
             fullSafetensorsPath = os.path.join(loraDir, jsonFiles[file])[:-5] + ".safetensors"
             loraName = getLoraName(fullSafetensorsPath)

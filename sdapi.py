@@ -13,12 +13,15 @@ import time
 import atexit
 import sys
 import os
+from flask_cors import CORS
 
 worker_process = None
 WORKER_SCRIPT = "./SDGenerator_worker.py"
 PYTHON_EXECUTABLE = "venv/Scripts/python.exe" #TODO only windows for now.
 WORKER_PID_FILE = "worker.pid" # Define globally
 STOP_FLAG_FILE = "stop_worker.flag" # Define globally
+
+
 
 def is_worker_running():
     """Checks if the worker process is currently running."""
@@ -49,6 +52,8 @@ def is_worker_running():
     return False
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 SD_BACKEND_URL = "http://127.0.0.1:7860"
 
@@ -90,7 +95,7 @@ def txt2img():
     generatedTasks = generator.makeTasks()
     jobsave = JobManager.tasksToJob(generatedTasks)
 
-    return {"status" : "success", "message" : jobsave}
+    return {"status" : "success, job queued.", "message" : jobsave}
 
 @app.route("/txt2imgCouple", methods=["POST"])
 def txt2imgCouple():
@@ -515,6 +520,44 @@ def getJobInfo():
     else:
         return jsonify({"status": "error", "message": "Job not found"})
     
+@app.route("/jobImages", methods=["POST"])
+def getJobImages():
+    """
+    Returns the images from the jobs.json file.
+    """
+    data = request.get_json()
+    try:
+        jobID = data["jobID"]
+    except KeyError:
+        return jsonify({"status": "error", "message": "No jobID provided"})
+    if "thumbnail" in data:
+        thumbnail = data["thumbnail"]
+    else:
+        thumbnail = False
+    jobs = JobManager.getJobs()
+    if jobID in jobs:
+        taskIds = []
+        for task in jobs[jobID]["tasks"]:
+            taskIds.append(task["taskID"])
+        
+        images = []
+        import base64
+        import ImageLoadingSaving as ils
+        # encode image in base64
+        # if thumbnail is enabled, return the thumbnail image (downscaled)
+        # else return the full image
+        for taskID in taskIds:
+            try:
+                image = ils.encode_file_to_base64("./images/" + taskID + ".png", thumbnail=thumbnail)
+                images.append({"taskID": taskID, "image": image})
+            except FileNotFoundError:
+                print(f"File not found for task {taskID}. Skipping...")
+                continue
+        
+        return jsonify(images)
+    else:
+        return jsonify({"status": "error", "message": "Job not found"})
+    
 @app.route("/deleteJob", methods=["POST"])
 def deleteJob():
     """
@@ -532,9 +575,31 @@ def deleteJob():
     else:
         JobManager.updateJobs(jobs)
         print(f"job {jobID} not found")
-        
         return jsonify({"status": "completed"})
         return jsonify({"status": "error", "message": "Job not found"})
+
+# this just sets the whole job and its tasks as completed
+@app.route("/skipJob", methods=["POST"])
+def skipJob():
+    """
+    Skips a job from the jobs.json file.
+    """
+    data = request.get_json()
+    jobID = data["jobID"]
+    jobs = JobManager.getJobs()
+    if jobID in jobs:
+        # remove the job from the jobs list
+        for task in jobs[jobID]["tasks"]:
+            task["status"] = "completed"
+        jobs[jobID]["status"] = "completed"
+        JobManager.updateJobs(jobs)
+        print(f"skipped job {jobID}")
+        return jsonify({"status": "completed", "message": "Job skipped"})
+    else:
+        JobManager.updateJobs(jobs)
+        print(f"job {jobID} not found")
+        
+        return jsonify({"status": "completed"})
 
 @app.route("/recreate-image", methods=["POST"])
 def recreate_image():
@@ -726,7 +791,7 @@ def proxy_to_sd_backend(path):
         # Make the request to the SD backend
         resp = requests.request(
             method=request.method,
-            url=target_url,
+            url= target_url,
             headers=headers,
             data=request.get_data(), # Get raw body data
             cookies=request.cookies,
@@ -736,7 +801,7 @@ def proxy_to_sd_backend(path):
         )
 
         # Build the response to send back to the client
-        # Exclude certain headers that shouldn't be blindly proxied
+        # Exclude certain headers that shouldn't be blindly proxied        
         excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
         response_headers = [(name, value) for (name, value) in resp.raw.headers.items()
                             if name.lower() not in excluded_headers]

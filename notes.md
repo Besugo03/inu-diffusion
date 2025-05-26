@@ -1,6 +1,6 @@
 Functions for the app the api provides :
 
-x Image Recreator (from Gelbooru tag) 
+- Image Recreator (from Gelbooru tag) 
   - To implement danbooru for the same 
   - To implement DeepBooru interrogation to enrich image tags
     - Should have an option to either use local model or remotely hosted ones like on huggingface
@@ -15,21 +15,13 @@ x Image Recreator (from Gelbooru tag)
   - Get currently popular tags
   - Get currently popular characters
 
-- Wildcard processing :
-  - Processing wildcards
-  - Caching bangtags/characters
+- Wildcard processing : (POSTPONED)
+  - Processing wildcards without extension
 
 - Things to implement :
-  - Queueing with all these different things in mind
-  - doing some A1111 requests structure research to include extensions and things like ADetailer / Extras etc...
-  - Saving defaults for generation
-    - Sampler
+  - Potential support for more extensions 
+  x Saving defaults for generation
     - Scheduler
-    - Steps
-    - Resolution / multiple resolution to choose randomly
-    - CFG
-    - Batch count
-    - Style selected from csv
 
 Things the frontend should include :
 - Normal image generation interface like stable diffusion
@@ -57,19 +49,8 @@ Things the frontend should include :
 
 Endpoints necessari : 
 T ottenere i jobs
-T per ogni job, ottenere le immagini, magari separatamente alcune di preview?
-x inviare nuovi jobs
-x annullare jobs specifici
-x mettere in pausa la generazione
-x riprendere la generazione
-x cancellare jobs
-x ottenere defaults (magari settandoli come correnti)
-x modificare defaults (magari settando i correnti come tali)
-- interrogate image rectreator
-x load different models
-x get available loras
+- interrogate image recreator ==POSTPONED==
 / generate lora wildcard
-T set GPU weights
 
 
 http://127.0.0.1:7860/sdapi/v1/options

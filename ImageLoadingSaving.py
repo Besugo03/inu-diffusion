@@ -38,9 +38,19 @@ def save_image(image, filename):
     """
     image.save(filename)
 
-def encode_file_to_base64(path):
+def encode_file_to_base64(path, thumbnail=False):
     import base64
+    from PIL import Image
+    from io import BytesIO
     with open(path, 'rb') as file:
+        # if thumbnail, return a downsized version of the image
+        if thumbnail:
+            img = Image.open(file)
+            img.thumbnail((256, 256))
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
+            return base64.b64encode(buffer.read()).decode('utf-8')
         return base64.b64encode(file.read()).decode('utf-8')
     
 def add_metadata_to_image(imagepath : str, metadata : dict):

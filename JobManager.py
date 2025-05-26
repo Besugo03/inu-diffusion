@@ -136,7 +136,6 @@ def tasksToJob(tasks):
             with open("jobs.json", "r", encoding="utf-8") as f:
                 jobList = json.load(f)
                 f.close()
-                return currentTime
         except FileNotFoundError:
             print("No job file found. Creating a new one...")
             # make sure the jobs.json file exists
@@ -158,3 +157,4 @@ def tasksToJob(tasks):
         with open("jobs.json", "w", encoding="utf-8") as f:
             json.dump(jobList, f, indent=4)
             f.close()
+            return currentTime
