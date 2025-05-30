@@ -100,64 +100,64 @@ print(response.json())
 # =============== REDIRECTION TEST ===============
 
 
-# response = requests.get(f"{address}/sdapi/v1/sd-models")
-# print(response.json())
+response = requests.get(f"{address}/sdapi/v1/sd-models")
+print(response.json())
 
-# models = response.json()
+models = response.json()
 # for model in models:
 
 
-# def generateLoraWildcard(wildcardDir : str, strength : float = 0.7):
-#     response = requests.get(f"{address}/sdapi/v1/loras")
-#     print(response.json())
+def generateLoraWildcard(wildcardDir : str, strength : float = 0.7):
+    response = requests.get(f"{address}/sdapi/v1/loras")
+    print(response.json())
 
-#     loras = response.json()
-#     # results = []
-#     finalString = "{ "
-#     for lora in loras:
-#         print(lora['name'])
-#         if lora['path'].replace("\\", "/").split("/Lora/")[1].startswith(wildcardDir) == False:
-#             print(f"[INFO] Lora {lora['name']} not in the wildcard directory. Skipping...")
-#             continue
-#         try :
-#             training_tags_folders = lora['metadata']['ss_tag_frequency']
-#         except KeyError:
-#             print("[INFO] KeyError: ss_tag_frequency not found in metadata for lora " + lora['name'])
-#             continue
+    loras = response.json()
+    # results = []
+    finalString = "{ "
+    for lora in loras:
+        print(lora['name'])
+        if lora['path'].replace("\\", "/").split("/Lora/")[1].startswith(wildcardDir) == False:
+            print(f"[INFO] Lora {lora['name']} not in the wildcard directory. Skipping...")
+            continue
+        try :
+            training_tags_folders = lora['metadata']['ss_tag_frequency']
+        except KeyError:
+            print("[INFO] KeyError: ss_tag_frequency not found in metadata for lora " + lora['name'])
+            continue
             
 
-#         finalString += f" <lora:{lora['name']}:{strength}> " 
-#         # foundTags = []
-#         for folder in training_tags_folders:
-#             finalString += " {  "
-#             sorted_tags = sorted(training_tags_folders[folder].items(), key=lambda x: x[1], reverse=True)
+        finalString += f" <lora:{lora['name']}:{strength}> " 
+        # foundTags = []
+        for folder in training_tags_folders:
+            finalString += " {  "
+            sorted_tags = sorted(training_tags_folders[folder].items(), key=lambda x: x[1], reverse=True)
 
-#             # get the tags that, starting from the top, make x% of the total dataset tag frequency
-#             def get_tags_by_percentage(tags, percentage):
-#                 tags_sum = sum(tag[1] for tag in tags)
-#                 threshold = tags_sum * (percentage / 100)
-#                 current_sum = 0
-#                 selected_tags = []
-#                 for tag in tags:
-#                     current_sum += tag[1]
-#                     selected_tags.append(tag[0])
-#                     if current_sum >= threshold:
-#                         break
-#                 return selected_tags
+            # get the tags that, starting from the top, make x% of the total dataset tag frequency
+            def get_tags_by_percentage(tags, percentage):
+                tags_sum = sum(tag[1] for tag in tags)
+                threshold = tags_sum * (percentage / 100)
+                current_sum = 0
+                selected_tags = []
+                for tag in tags:
+                    current_sum += tag[1]
+                    selected_tags.append(tag[0])
+                    if current_sum >= threshold:
+                        break
+                return selected_tags
             
-#             selected_tags = get_tags_by_percentage(sorted_tags, 20)
-#             # print(selected_tags)
-#             # foundTags.append({folder : selected_tags})
-#             # print(foundTags)
-#             for tag in selected_tags:
-#                 finalString += f"{tag}, "
-#             finalString = finalString[:-2] + " | "
-#             finalString = finalString[:-2] + " }"
-#         # results.append({lora['name'] : foundTags})
-#         finalString += " | "
-#     return finalString[:-3] + " }"
+            selected_tags = get_tags_by_percentage(sorted_tags, 20)
+            # print(selected_tags)
+            # foundTags.append({folder : selected_tags})
+            # print(foundTags)
+            for tag in selected_tags:
+                finalString += f"{tag}, "
+            finalString = finalString[:-2] + " | "
+            finalString = finalString[:-2] + " }"
+        # results.append({lora['name'] : foundTags})
+        finalString += " | "
+    return finalString[:-3] + " }"
 
-# print(generateLoraWildcard("Positions"))
+print(generateLoraWildcard("Positions"))
 
 # response = requests.post(f"{address}/txt2imgCouple", json=data)
 # print(response)
