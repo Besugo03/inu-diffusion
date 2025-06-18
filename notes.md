@@ -1,4 +1,6 @@
 
+**MUST REMOVE NECESSARY DEFAULTS.JSON FILE, HAVE TO CREATE IT ON FIRST BOOT OR PUSH A DEFAULT ONE.**
+
 *New dock for moving between pages* : https://ui.aceternity.com/components/floating-dock
 
 *Main generation tab* : 

@@ -18,6 +18,9 @@ from flask_cors import CORS
 worker_process = None
 WORKER_SCRIPT = "./SDGenerator_worker.py"
 PYTHON_EXECUTABLE = "venv/Scripts/python.exe" #TODO only windows for now.
+# if the os is linux use venv/bin/python
+if sys.platform.startswith('linux'):
+    PYTHON_EXECUTABLE = "venv/bin/python"
 WORKER_PID_FILE = "worker.pid" # Define globally
 STOP_FLAG_FILE = "stop_worker.flag" # Define globally
 
@@ -119,6 +122,7 @@ def txt2imgCouple():
         hr_scale = data.get("hr_scale", 2),
         hr_upscaler = data.get("hr_upscaler", defaults["hr_upscaler"]),
         denoising_strength = data.get("denoising_strength", 0.3),
+        global_effect= data.get("global_effect", "None")
     )
 
     width = data.get("width", None)

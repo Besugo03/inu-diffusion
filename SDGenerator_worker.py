@@ -181,9 +181,16 @@ def send_job(job : Txt2ImgJob, taskName = None):
     while not success:
         try:
             print(f"sending request to server on endpoint {endpoint}... ")
+            print(f"payload: {payload}")
             response = requests.post(endpoint, json=payload)
+            print(f"response: {response}")
             print("test")
             success = True
+            print(f"response status code: {response.status_code}")
+            if response.status_code != 200:
+                print(f"Error: Received status code {response.status_code} from server.")
+                print(f"Response text: {response.text}")
+                raise Exception(f"Server returned status code {response.status_code}")
         except Exception as e:
             print(f"Error sending request: {str(e)}")
             # wait for 1 second before retrying
@@ -198,6 +205,9 @@ def send_job(job : Txt2ImgJob, taskName = None):
     os.makedirs("./images", exist_ok=True)
 
     jobs = loadJobs()
+    print(f"saving image for task {taskName}...")
+    print(f"response json keys: {response.json().keys()}")
+    print(response.json()["images"][0][0:30], "...") # print the first 30 characters of the image data
     ils.save_image(ils.decode_image(response.json()["images"][0]), f"./images/{taskName}.png")
     # add the metadata to the image (info)
     metadata = response.json()["info"]
@@ -270,6 +280,15 @@ def startGeneration():
                     job = Txt2ImgJob(**foundTask["task"])
                 elif jobs[foundJob]["jobType"] == "forgeCouple":
                     job = ForgeCoupleJob(**foundTask["task"])
+                    script_args = foundTask['task'].get("alwayson_scripts", {}).get("forge couple", {}).get("args", [])
+                    job.enable = script_args[0]
+                    job.compatibility = script_args[1]
+                    job.mode = script_args[2]
+                    job.couple_separator = script_args[3]
+                    job.tile_direction = script_args[4]
+                    job.global_effect = script_args[5]
+                    print(f"[WORKER] global_effect: {job.global_effect}")
+                    job.global_effect_strength = script_args[6]
                 elif jobs[foundJob]["jobType"] == "upscale":
                     job = UpscaleJob(**foundTask["task"])
                 else:
@@ -290,13 +309,16 @@ def startGeneration():
                     # set the task to completed
                     if foundTask is not None:
                         jobs[foundJob]["tasks"][jobs[foundJob]["tasks"].index(foundTask)]["status"] = "completed"
+                        print(f"[WORKER] set task {foundTask['taskID']} to completed")
                     # if all tasks are completed or None set the job to completed
                     if all(task["status"] == "completed" or task["status"] == None for task in jobs[foundJob]["tasks"]):
                         jobs[foundJob]["status"] = "completed"
+                        print(f"[WORKER] set job {foundJob} to completed")
                     # save the jobs to the file
                     with open("jobs.json", "w", encoding="utf-8") as f:
                         json.dump(jobs, f, indent=4)
                         f.close()
+                        print("[WORKER] saved jobs to file")
 
             except Exception as e:
                 raise e

@@ -152,6 +152,13 @@ def getTrendingCharacters(pages_to_fetch: int = 20, min_score: int = 100,
     
     return sorted(characters, key=lambda x: x[1], reverse=True)
 
+def getPostsAboveScore(score: int, pages_to_fetch: int = 20, post_threads: int = 5, tag_threads: int = 5) -> list[tuple[str, int]]:
+    """Get posts above a score with controlled multithreading."""
+    posts = []
+    for page in range(pages_to_fetch):
+        posts.extend(__getPosts(f"score:>{score}", 100, page))
+    return posts
+
 if __name__ == "__main__":
     # Example usage with conservative threading
     # trending = getTrendingCharacters(
@@ -168,4 +175,3 @@ if __name__ == "__main__":
     print(tags)
     tags = ",".join(tags)
     tags = ir.filterForbiddenWords(tags, ["default", "accessories", "attireAndAccessories", "colors", "bodyFeatures"])
-    print(tags)
